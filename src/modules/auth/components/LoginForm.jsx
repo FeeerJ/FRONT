@@ -16,19 +16,26 @@ function LoginForm() {
 
   const navigate = useNavigate();
 
-  const { singin } = useAuth();
+  const { user, singin } = useAuth();
 
   const onValid = async (formData) => {
     try {
-      const { error } = await singin(formData.username, formData.password);
+      const response = await singin(formData.username, formData.password);
 
-      if (error) {
-        setErrorMessage(error.frontendErrorMessage);
+      if (response.error) {
+        setErrorMessage(response.error.frontendErrorMessage);
 
         return;
       }
-
-      navigate('/admin/home');
+      
+      const userRole = response.user?.role;
+      if(userRole == 'Admin'){
+         navigate('/admin/home');
+      }else{
+        navigate('/');
+      }
+    
+   
     } catch (error) {
       if (error?.response?.data?.code) {
         setErrorMessage(frontendErrorMessage[error?.response?.data?.code]);
