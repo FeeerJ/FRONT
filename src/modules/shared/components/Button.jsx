@@ -1,4 +1,4 @@
-function Button({ children, type = 'button', variant = 'default', ...restProps }) {
+function Button({ children, type = 'button', variant = 'default', className = '', ...restProps }) {
   if (!['button', 'reset', 'submit'].includes(type)) {
     console.warn('type prop not supported');
   }
@@ -10,13 +10,13 @@ function Button({ children, type = 'button', variant = 'default', ...restProps }
 
   return (
     <button
+      type={type}                        // type seguro
       {...restProps}
-      className={`${variantStyle[variant]} ${restProps.className}`}
-      type={type}
+      className={`${variantStyle[variant]} ${className}`.trim()}   // className seguro
     >
       {children}
     </button>
   );
-};
+}
 
 export default Button;

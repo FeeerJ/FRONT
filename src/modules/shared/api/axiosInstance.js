@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL,
-  withCredentials: true,
+  baseURL: '/',     // ⬅ NECESARIO PARA USAR EL PROXY DE VITE
+  withCredentials: false,
 });
 
 instance.interceptors.request.use(
@@ -19,9 +19,9 @@ instance.interceptors.request.use(
 );
 
 instance.interceptors.response.use(
-  (config) => { return config; },
+  (config) => config,
   (error) => {
-    if (error.status === 401) {
+    if (error.response && error.response.status === 401) {
       if (window.location.pathname.includes('/admin/')) {
         localStorage.clear();
         window.location.href = '/login';
