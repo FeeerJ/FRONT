@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Button from '../../shared/components/Button';
+import { useNavigate } from 'react-router-dom';
 import LoginPage from '../../auth/pages/LoginPage'; // Asumimos que esta es la página/formulario de login
 import  useAuth  from '../../auth/hook/useAuth'; // Hook para el estado de autenticación (isAuthenticated)
 
@@ -18,6 +19,7 @@ const Modal = ({ children, onClose }) => (
 const CartPage = () => {
     const [cart, setCart] = useState([]); 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const navigate = useNavigate();
     
     // Obtener el estado de autenticación
     const { isAuthenticated, user } = useAuth(); 
@@ -118,7 +120,15 @@ const CartPage = () => {
 
     return (
         <div className="container mx-auto p-4 md:p-8 max-w-4xl">
-            <h1 className="text-3xl font-bold mb-6 text-gray-800">Tu Carrito de Compras</h1>
+            <div className="flex items-center justify-between mb-6">
+                <h1 className="text-3xl font-bold text-gray-800">Tu Carrito de Compras</h1>
+                <Button
+                    onClick={() => navigate(-1)}
+                    className="ml-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm"
+                >
+                    Volver al catálogo
+                </Button>
+            </div>
 
             {cart.length === 0 ? (
                 <div className="bg-gray-100 p-8 text-center rounded-xl shadow-inner">
