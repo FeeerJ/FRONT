@@ -23,22 +23,24 @@ const useAuth = () => {
 };
 
 // **Mock de getProducts:** Simula el fetch a /api/products
-const getProducts = async (searchTerm, status, pageNumber, pageSize, token) => {
-    // URL completa con filtros
-    const params = new URLSearchParams({ 
-        search: searchTerm, 
-        status: status,
-        page: pageNumber,
-        limit: pageSize,
-    }).toString();
+const getProducts = async (searchTerm, _status, pageNumber, pageSize, token) => {
+  // Enviamos búsqueda y paginación al backend; si el backend no soporta `status`
+  // lo aplicaremos en frontend.
+  const params = new URLSearchParams({ 
+    search: searchTerm, 
+    page: pageNumber,
+    limit: pageSize,
+  }).toString();
     
-    try {
-        const response = await fetch(`/api/products?${params}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-        });
+  try {
+    const url = `/api/products?${params}`;
+    console.debug('[Products] GET', url);
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
         if (response.status === 401) {
              // Lanza error 401 para que el componente padre lo maneje (redirección)
@@ -51,10 +53,10 @@ const getProducts = async (searchTerm, status, pageNumber, pageSize, token) => {
         
         const data = await response.json();
         // Asumimos que el backend devuelve un array directo, o { data: [...], totalCount: N }
-        return { 
-            data: data.productItems || data, // Usa 'productItems' si es paginado
-            totalCount: data.totalCount || data.length 
-        };
+        const items = data.productItems || data;
+        const totalCount = data.totalCount || items.length;
+        console.debug('[Products] Fetched', items.length, 'items, totalCount=', totalCount);
+        return { data: items, totalCount };
 
     } catch (error) {
         throw error;
@@ -114,8 +116,18 @@ function ListProductsPage() {
       setLoading(true);
       const { data, totalCount } = await getProducts(searchTerm, status, pageNumber, pageSize, token);
 
-      setTotal(totalCount);
-      setProducts(data);
+      // Si el backend no soporta filtrado por estado, aplicamos filtro en frontend.
+      let finalData = data;
+      let finalTotal = totalCount;
+      if (status && status !== productStatus.ALL) {
+        // Mapeamos el filtro a la propiedad booleana isActive
+        const wantEnabled = status === productStatus.ENABLED;
+        finalData = data.filter(p => !!p.isActive === wantEnabled);
+        finalTotal = finalData.length; // Nota: solo del lote recibido
+      }
+
+      setTotal(finalTotal);
+      setProducts(finalData);
       
     } catch (error) {
         // Capturamos el error 401 aquí para loguearlo, pero el Guard (ProtectedRoute)
@@ -201,35 +213,44 @@ function ListProductsPage() {
           <Card>
     <div className='flex justify-between items-center mb-3'>
     <h1 className='text-3xl'>Productos</h1>
-    {/* ... Botones ... */}
   </div>
 
   <div className='flex flex-col sm:flex-row gap-4'>
-    {/* ... Input de Búsqueda ... */}
+    {/* Input de Búsqueda y Botón (estilo copiado de Orders) */}
     <div className='flex items-center gap-3 w-full sm:w-2/3'>
-      {/* ... input y botón ... */}
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
+        placeholder="Buscar por nombre..."
+        className='text-sm border border-gray-300 p-2 rounded w-full'
+        aria-label="Buscar productos"
+      />
+      <Button
+        className='h-10 w-10 bg-gray-200 hover:bg-gray-300'
+        onClick={handleSearch}
+        disabled={loading}
+      >
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.7955 15.8111L21 21M18 10.5C18 14.6421 14.6421 18 10.5 18C6.35786 18 3 14.6421 3 10.5C3 6.35786 6.35786 3 10.5 3C14.6421 3 18 6.35786 18 10.5Z" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </svg>
+      </Button>
     </div>
-    {/* ... Select de Estado ... */}
-    <select value={status} onChange={handleStatusChange} className='text-[1.1rem] 
-        border border-gray-300 
-        p-2 
-        rounded-lg            /* Esquinas más suaves */
-        shadow-sm             /* Sombra sutil */
-        bg-white              /* Fondo blanco */
-        hover:border-purple-400 /* Efecto visual al pasar el ratón */
-        focus:outline-none    /* Quitar el outline azul por defecto */
-        focus:ring-2 
-        focus:ring-purple-200 /* Anillo de enfoque elegante */
-        w-full 
-        sm:w-1/3
-        appearance-none       /* Quitar la flecha nativa (Opcional, si usas ícono custom) */
-        pr-8                  /* Padding a la derecha para la flecha custom */
-        cursor-pointer
-    '>
-      <option value={productStatus.ALL}>Todos</option>
-      <option value={productStatus.ENABLED}>Habilitados</option>
-      <option value={productStatus.DISABLED}>Inhabilitados</option>
-    </select>
+
+    {/* Select de Estado (estilo copiado de Orders) */}
+    <div className='relative w-full sm:w-1/3'>
+      <select
+        value={status}
+        onChange={handleStatusChange}
+        className='text-sm border border-gray-300 p-2 rounded-lg shadow-sm bg-white hover:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-200 w-full appearance-none pr-8 cursor-pointer'
+      >
+        <option value={productStatus.ALL}>Todos</option>
+        <option value={productStatus.ENABLED}>Habilitados</option>
+        <option value={productStatus.DISABLED}>Inhabilitados</option>
+      </select>
+      <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700'>
+        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+      </div>
+    </div>
   </div>
 </Card>
 
@@ -247,23 +268,13 @@ function ListProductsPage() {
                     </div>
 
                     <div className='flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-2 sm:mt-0'>
-                        {/* Botón de Edición */}
-                        <Button 
-                            onClick={() => navigate(`/admin/products/edit/${product.id}`)}
-                            className='bg-blue-500 hover:bg-blue-600 text-white p-2 text-sm'
-                        >
-                            Editar
-                        </Button>
-
-                        {/* Botón de Deshabilitar (solo si está activo) */}
-                        {product.isActive && (
-                            <Button 
-                                onClick={() => handleDisableProduct(product.id)}
-                                className='bg-red-500 hover:bg-red-600 text-white p-2 text-sm'
-                            >
-                                Deshabilitar
-                            </Button>
-                        )}
+                      {/* Botón único 'Ver' para ver detalles del producto */}
+                      <Button
+                        onClick={() => navigate(`/admin/products/view/${product.id}`)}
+                        className='bg-indigo-600 hover:bg-indigo-700 text-white p-2 text-sm'
+                      >
+                        Ver
+                      </Button>
                     </div>
                 </div>
               </Card>
@@ -272,32 +283,46 @@ function ListProductsPage() {
 
           {/* Controles de Paginación */}
           {totalPages > 1 && (
-            <div className='flex justify-center items-center mt-6 space-x-3'>
-              <button
-                disabled={pageNumber === 1 || loading}
-                onClick={() => setPageNumber(pageNumber - 1)}
-                className='px-4 py-2 bg-gray-200 rounded disabled:bg-gray-100 disabled:text-gray-400 hover:bg-gray-300 transition'
-              >
-                Anterior
-              </button>
-              <span className='font-semibold'>{pageNumber} / {totalPages}</span>
-              <button
-                disabled={pageNumber === totalPages || loading}
-                onClick={() => setPageNumber(pageNumber + 1)}
-                className='px-4 py-2 bg-gray-200 rounded disabled:bg-gray-100 disabled:text-gray-400 hover:bg-gray-300 transition'
-              >
-                Siguiente
-              </button>
+            <div className='flex justify-between items-center mt-6 space-x-3'>
+              <div className='flex items-center space-x-3'>
+                <button
+                  disabled={pageNumber === 1 || loading}
+                  onClick={() => setPageNumber(pageNumber - 1)}
+                  className='px-4 py-2 bg-gray-200 rounded disabled:bg-gray-100 disabled:text-gray-400 hover:bg-gray-300 transition'
+                >
+                  Anterior
+                </button>
+                <span className='font-semibold'>{pageNumber} / {totalPages}</span>
+                <button
+                  disabled={pageNumber === totalPages || loading}
+                  onClick={() => setPageNumber(pageNumber + 1)}
+                  className='px-4 py-2 bg-gray-200 rounded disabled:bg-gray-100 disabled:text-gray-400 hover:bg-gray-300 transition'
+                >
+                  Siguiente
+                </button>
 
-              <select
-                value={pageSize}
-                onChange={handlePageSizeChange}
-                className='ml-3 p-2 border border-gray-300 rounded'
-              >
-                <option value="10">10 por página</option>
-                <option value="15">15 por página</option>
-                <option value="20">20 por página</option>
-              </select>
+                <select
+                  value={pageSize}
+                  onChange={handlePageSizeChange}
+                  className='ml-3 p-2 border border-gray-300 rounded'
+                >
+                  <option value="10">10 por página</option>
+                  <option value="15">15 por página</option>
+                  <option value="20">20 por página</option>
+                </select>
+              </div>
+
+              {/* Admin-only button placed next to pagination for better layout */}
+              <div>
+                {user?.role === 'Admin' && (
+                  <Button
+                    onClick={() => navigate('/admin/products/create')}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                  >
+                    Crear Producto
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -3,6 +3,8 @@ import Button from '../../shared/components/Button';
 import ProductCard from '../components/ProductCard'; 
 import ProductSearchBar from '../components/ProducSearchBar'; 
 import CartIcon from '../components/CartIcon'; // Componente de ícono de navegación al carrito
+import { useNavigate } from 'react-router-dom';
+import useAuth from '../../auth/hook/useAuth';
 
 const ClientProductsPage = () => {
     // Estado para la lista de productos
@@ -23,6 +25,8 @@ const ClientProductsPage = () => {
 
     // --- Lógica del Carrito (LocalStorage) y Notificación ---
 
+    const navigate = useNavigate();
+    const { user, isAuthenticated, singout } = useAuth();
     const handleAddToCart = (product, quantity) => {
         if (quantity < 1) {
             alert('Debes seleccionar al menos 1 unidad para agregar.');
@@ -159,6 +163,29 @@ const ClientProductsPage = () => {
                     
                     {/* 2. Ícono de Carrito y Navegación */}
                     <CartIcon />
+                    {/* 3. Botón de Login / Logout */}
+                    <Button
+                        onClick={() => {
+                            if (isAuthenticated) {
+                                // Cerrar sesión: limpiar información local y redirigir a la página de login
+                                try {
+                                    singout();
+                                } catch (e) {
+                                    console.debug('Error calling singout', e);
+                                }
+                                // En singout ya limpiamos localStorage; asegurar customerId removido
+                                try { localStorage.removeItem('customerId'); } catch (e) {}
+                                // Notificar componentes que dependan del carrito
+                                try { window.dispatchEvent(new Event('cartUpdated')); } catch (e) {}
+                                navigate('/login');
+                            } else {
+                                navigate('/login');
+                            }
+                        }}
+                        className="ml-2 px-5 py-2 min-w-[140px] rounded-full bg-white border border-purple-600 text-purple-600 font-semibold hover:bg-purple-600 hover:text-white transition-shadow shadow-sm hover:shadow-md"
+                    >
+                        {isAuthenticated ? 'Cerrar Sesión' : 'Iniciar Sesión'}
+                    </Button>
                 </div>
             </div>
             
