@@ -1,87 +1,81 @@
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { instance } from '../../shared/api/axiosInstance';
+import { useNavigate, Link } from 'react-router-dom';
+import { useState } from 'react';
+
 import Input from '../../shared/components/Input';
 import Button from '../../shared/components/Button';
-import useAuth from '../hook/useAuth';
-import { frontendErrorMessage } from '../helpers/backendError';
+import Card from '../../shared/components/Card';
 
-function LoginForm() {
-  const [errorMessage, setErrorMessage] = useState('');
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({ defaultValues: { username: '', password: '' } });
-
+export default function LoginForm() {
+  const { register, handleSubmit, formState: { errors } } = useForm();
   const navigate = useNavigate();
+  const [backendError, setBackendError] = useState(null);
 
-  const { user, singin } = useAuth();
-
-  const onValid = async (formData) => {
+  const onSubmit = async (data) => {
     try {
-      const response = await singin(formData.username, formData.password);
+      // ⬇️ 1. Llamamos al endpoint login
+      const response = await instance.post('/api/authenticate/login', {
+        username: data.username,
+        password: data.password
+      });
 
-      if (response.error) {
-        setErrorMessage(response.error.frontendErrorMessage);
+      const loginData = response.data;
 
-        return;
-      }
-      
-      const userRole = response.user?.role;
-      if(userRole == 'Admin'){
-         navigate('/admin/home');
-      }else{
-        navigate('/');
-      }
-    
-   
+      console.log("[Login] respuesta backend:", loginData);
+
+      // ⬇️ 2. Guardamos todo lo necesario en localStorage
+      localStorage.setItem("token", loginData.token);
+      localStorage.setItem("username", loginData.username);
+      localStorage.setItem("customerId", loginData.customerId);      // ⭐ IMPORTANTE
+      localStorage.setItem("identityUserId", loginData.identityUserId);
+
+      // ⬇️ 3. Redirigimos al home o carrito
+      navigate('/');
+
     } catch (error) {
-      if (error?.response?.data?.code) {
-        setErrorMessage(frontendErrorMessage[error?.response?.data?.code]);
-      } else {
-        setErrorMessage('Llame a soporte');
-      }
+      console.error("[Login] error:", error);
+      setBackendError('Usuario o contraseña incorrectos.');
     }
   };
 
   return (
-    <form className='
-        flex
-        flex-col
-        gap-20
-        bg-white
-        p-8
-        sm:w-md
-        sm:gap-4
-        sm:rounded-lg
-        sm:shadow-lg
-      '
-    onSubmit={handleSubmit(onValid)}
-    >
-      <Input
-        label='Usuario'
-        { ...register('username', {
-          required: 'Usuario es obligatorio',
-        }) }
-        error={errors.username?.message}
-      />
-      <Input
-        label='Contraseña'
-        { ...register('password', {
-          required: 'Contraseña es obligatorio',
-        }) }
-        type='password'
-        error={errors.password?.message}
-      />
+    <Card className="p-6 flex flex-col gap-4 w-full max-w-md">
 
-      <Button type='submit'>Iniciar Sesión</Button>
-      <Button variant='secondary'type='button'onClick={() => navigate('/signup')}>
-       Registrar Usuario
-      </Button>
-      {errorMessage && <p className='text-red-500'>{errorMessage}</p>}
-    </form>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+
+        {backendError && <p className="text-red-600">{backendError}</p>}
+
+        <Input
+          label="Usuario"
+          error={errors.username?.message}
+          {...register('username', {
+            required: 'El usuario es obligatorio',
+          })}
+        />
+
+        <Input
+          type="password"
+          label="Contraseña"
+          error={errors.password?.message}
+          {...register('password', {
+            required: 'La contraseña es obligatoria'
+          })}
+        />
+
+        <Button type="submit" variant="default">
+          Iniciar Sesión
+        </Button>
+
+      </form>
+
+      <p className="text-sm text-center">
+        ¿No tenés cuenta?
+        <Link to="/register" className="text-purple-500 ml-1 hover:underline">
+          Registrarme
+        </Link>
+      </p>
+
+    </Card>
   );
-};
-
-export default LoginForm;
+}

@@ -17,7 +17,9 @@ export default function RegisterForm() {
       await instance.post('/api/authenticate/register', {
         username: data.username,
         email: data.email,
-        password: data.password
+        password: data.password,
+        name: data.name,
+        phoneNumber: data.phoneNumber
       });
 
       navigate('/login');
@@ -40,6 +42,20 @@ export default function RegisterForm() {
             required: 'El usuario es obligatorio',
             minLength: { value: 3, message: 'Mínimo 3 caracteres' }
           })}
+        />
+
+        <Input 
+         label= "Nombre Completo"
+         error = {errors.name?.message}{...register('name', {
+          required: 'El nombre es obligatorio',
+          minLength: { value: 3, message: 'Mínimo 3 caracteres' }
+         })} 
+        />
+
+        <Input
+          label="Teléfono"
+          error={errors.phoneNumber?.message}
+          {...register('phoneNumber', {required: 'El teléfono es obligatorio', minLength: { value: 7, message: 'Mínimo 7 caracteres' }})}
         />
 
         <Input

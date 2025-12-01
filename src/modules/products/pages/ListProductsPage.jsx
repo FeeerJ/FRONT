@@ -271,7 +271,7 @@ function ListProductsPage() {
                       {/* Botón único 'Ver' para ver detalles del producto */}
                       <Button
                         onClick={() => navigate(`/admin/products/view/${product.id}`)}
-                        className='bg-indigo-600 hover:bg-indigo-700 text-white p-2 text-sm'
+                        className='w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white p-2 text-sm'
                       >
                         Ver
                       </Button>

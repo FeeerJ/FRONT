@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Button from '../../shared/components/Button';
 import { useNavigate } from 'react-router-dom';
 import LoginPage from '../../auth/pages/LoginPage'; // Asumimos que esta es la página/formulario de login
-import  useAuth  from '../../auth/hook/useAuth'; // Hook para el estado de autenticación (isAuthenticated)
+import useAuth from '../../auth/hook/useAuth'; // Hook para el estado de autenticación (isAuthenticated)
 
 // Componente Placeholder para el Modal (debe ser implementado en shared/components/Modal.jsx)
 const Modal = ({ children, onClose }) => (
@@ -17,72 +17,193 @@ const Modal = ({ children, onClose }) => (
 );
 
 const CartPage = () => {
-    const [cart, setCart] = useState([]); 
+    const [cart, setCart] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const navigate = useNavigate();
-    
+
     // Obtener el estado de autenticación
-    const { isAuthenticated, user } = useAuth(); 
+    const { isAuthenticated, user } = useAuth();
 
     // Costo fijo de envío (ejemplo)
-    const SHIPPING_COST = 8.00; 
+    const SHIPPING_COST = 8.0;
 
-    // Carga inicial del carrito desde localStorage (key 'cart')
+    // Direcciones y notas para crear la orden
+    const [shippingAddress, setShippingAddress] = useState('');
+    const [billingAddress, setBillingAddress] = useState('');
+    const [notes, setNotes] = useState('');
+
+    // Carga inicial del carrito desde localStorage (key 'cart') y escucha actualizaciones
     useEffect(() => {
         const storedCart = localStorage.getItem('cart');
         if (storedCart) {
             try {
                 setCart(JSON.parse(storedCart));
             } catch (e) {
-                console.error("Error al parsear el carrito de localStorage:", e);
+                console.error('Error al parsear el carrito de localStorage:', e);
                 setCart([]);
             }
         }
+
+        // Escuchar eventos de actualización del carrito (ej. cuando cambia sesión)
+        const onCartUpdated = () => {
+            const c = localStorage.getItem('cart');
+            if (!c) {
+                setCart([]);
+                return;
+            }
+            try {
+                setCart(JSON.parse(c));
+            } catch (e) {
+                console.error('Error parsing cart on cartUpdated', e);
+                setCart([]);
+            }
+        };
+        window.addEventListener('cartUpdated', onCartUpdated);
+
+        return () => {
+            window.removeEventListener('cartUpdated', onCartUpdated);
+        };
     }, []);
 
     // --- CÁLCULOS ---
-    const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
     const total = subtotal + SHIPPING_COST;
 
     // --- LÓGICA DE API Y ENVÍO DE ORDEN ---
-
-    // Función que se encarga de enviar la orden a /api/orders
     const sendOrder = async () => {
-        const orderData = {
-            items: cart.map(item => ({
-                productId: item.id,
-                quantity: item.quantity,
-                unitPrice: item.price
-            })),
-            totalAmount: total,
-            shippingCost: SHIPPING_COST,
-            // Podrías incluir user.id si estuviera disponible y logeado
+        if (!cart.length) {
+            alert('Tu carrito está vacío.');
+            return;
+        }
+
+        // Obtener customerId desde user o localStorage (fallback)
+        let customerId = user?.customerId || localStorage.getItem('customerId');
+        const username = user?.username || localStorage.getItem('username');
+        console.debug('[Cart] sendOrder: initial customerId=', customerId, 'username=', username);
+
+        // Base URL para la API (usar VITE_BACKEND_URL cuando esté configurado)
+        const apiBase = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
+
+        // Si no tenemos customerId pero sí username, intentamos resolverlo contra API (rutas comunes)
+        const tryResolveCustomerId = async (usernameToResolve, token) => {
+            if (!usernameToResolve) return null;
+            const attempts = [
+                `/api/customers/username/${encodeURIComponent(usernameToResolve)}`,
+                `/api/customers/by-username/${encodeURIComponent(usernameToResolve)}`,
+                `/api/customers?username=${encodeURIComponent(usernameToResolve)}`,
+            ];
+            for (const path of attempts) {
+                try {
+                    const fullUrl = apiBase ? `${apiBase}${path}` : path;
+                    console.debug('[Cart] resolving customerId via', fullUrl);
+                    const res = await fetch(fullUrl, {
+                        headers: { Authorization: token ? `Bearer ${token}` : '' },
+                    });
+                    if (!res.ok) continue;
+                    const data = await res.json();
+                    if (data) {
+                        if (data.id) return data.id;
+                        if (data.customerId) return data.customerId;
+                        if (Array.isArray(data) && data.length && (data[0].id || data[0].customerId)) {
+                            return data[0].id || data[0].customerId;
+                        }
+                    }
+                } catch (e) {
+                    console.debug('[Cart] resolve attempt failed', e);
+                    continue;
+                }
+            }
+            return null;
         };
-        
+
+        if (!customerId) {
+            if (username) {
+                const token = user?.token || localStorage.getItem('token');
+                const resolved = await tryResolveCustomerId(username, token);
+                console.debug('[Cart] resolved customerId=', resolved);
+                if (resolved) {
+                    customerId = resolved;
+                    try {
+                        localStorage.setItem('customerId', customerId);
+                    } catch (e) {}
+                }
+            }
+            if (!customerId) {
+                alert('Debes iniciar sesión con un usuario que tenga customerId válido en el sistema o configurar el backend para devolverlo.');
+                return;
+            }
+        }
+
+        // Validaciones básicas de direcciones
+        if (!shippingAddress || !billingAddress) {
+            alert('Por favor completa dirección de envío y de facturación.');
+            return;
+        }
+
+        // Construir payload acorde al DTO del backend (OrderModel.OrderRequest)
+        const orderData = {
+            customerId: customerId,
+            shippingAddress: shippingAddress,
+            billingAddress: billingAddress,
+            notes: notes || '',
+            orderItems: cart.map((item) => ({ productoId: item.id, quantity: item.quantity })),
+        };
+
         try {
-            const response = await fetch('/api/orders', { //
+            const ordersUrl = apiBase ? `${apiBase}/api/orders` : '/api/orders';
+            const headers = {
+                'Content-Type': 'application/json',
+                Authorization: isAuthenticated && user?.token ? `Bearer ${user.token}` : '',
+            };
+            console.debug('[Cart] sending order to', ordersUrl, orderData);
+            console.debug('[Cart] request headers', headers);
+
+            const response = await fetch(ordersUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // Si el usuario está logeado, se debe enviar el token
-                    'Authorization': isAuthenticated && user?.token ? `Bearer ${user.token}` : '', 
-                },
+                headers,
                 body: JSON.stringify(orderData),
             });
-            
-            if (response.ok) {
-                alert("¡Compra finalizada con éxito! Gracias por tu pedido.");
-                localStorage.removeItem('cart'); // Limpiar el carrito después de la compra
+
+            console.debug('[Cart] order response status', response.status, 'url', response.url);
+
+            if (response.status === 201) {
+                const created = await response.json().catch(() => null);
+                alert('¡Compra finalizada con éxito! Orden creada.');
+                localStorage.removeItem('cart');
                 setCart([]);
-                // Aquí podrías redirigir a una página de confirmación
+                if (created?.id) {
+                    // navigate(`/orders/${created.id}`);
+                }
             } else {
-                // Si la respuesta no es OK, manejar el error del servidor
-                const errorData = await response.json();
-                alert(`Error al procesar la compra: ${errorData.message || 'Error desconocido'}`);
+                let text = null;
+                try {
+                    text = await response.text();
+                } catch (e) {
+                    text = null;
+                }
+                let parsed = null;
+                try {
+                    parsed = text ? JSON.parse(text) : null;
+                } catch (e) {
+                    parsed = null;
+                }
+                console.error('[Cart] order failed', { status: response.status, url: response.url, bodyText: text, bodyJson: parsed });
+                const message = parsed?.Message || parsed?.message || text || 'Error desconocido';
+
+                // Caso común: backend devuelve que el CustomerId no existe
+                if (typeof message === 'string' && message.includes('Cliente con ID')) {
+                    // Extraer GUID si está presente
+                    const m = message.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
+                    const missingId = m ? m[0] : null;
+                    console.warn('[Cart] backend reports missing customer:', missingId);
+                    alert(`No se pudo crear la orden porque el cliente asociado no existe en el servidor.\n${message}\n\nSolución recomendada: crea el registro de cliente correspondiente en el backend (Customer) o ajusta el servicio de login/registro para crear el Customer automáticamente. CustomerId: ${missingId || 'desconocido'}`);
+                } else {
+                    alert(`Error al procesar la compra: ${message}`);
+                }
             }
         } catch (error) {
-            console.error("Error en la solicitud de orden:", error);
-            alert("Error de conexión con el servidor de órdenes.");
+            console.error('Error en la solicitud de orden (network):', error);
+            alert('Error de conexión con el servidor de órdenes. Revisa la consola para más detalles.');
         }
     };
     
@@ -173,13 +294,24 @@ const CartPage = () => {
                                 <span>${total.toFixed(2)}</span>
                             </div>
                         </div>
-                        
-                        <Button 
-                            onClick={handleCheckout} 
-                            className="w-full mt-6 bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-full font-semibold"
-                        >
-                            Finalizar Compra
-                        </Button>
+                            {/* Direcciones y notas */}
+                            <div className="mt-4 space-y-2">
+                                <label className="block text-sm font-medium text-gray-700">Dirección de envío</label>
+                                <input value={shippingAddress} onChange={(e) => setShippingAddress(e.target.value)} className="w-full p-2 border border-gray-300 rounded" placeholder="Calle, número, ciudad" />
+
+                                <label className="block text-sm font-medium text-gray-700">Dirección de facturación</label>
+                                <input value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)} className="w-full p-2 border border-gray-300 rounded" placeholder="Calle, número, ciudad" />
+
+                                <label className="block text-sm font-medium text-gray-700">Notas (opcional)</label>
+                                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full p-2 border border-gray-300 rounded" placeholder="Instrucciones adicionales" rows={3} />
+                            </div>
+
+                            <Button 
+                                onClick={handleCheckout} 
+                                className="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-full font-semibold"
+                            >
+                                Finalizar Compra
+                            </Button>
                     </div>
                 </div>
             )}
