@@ -12,7 +12,7 @@ export default function LoginForm() {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const navigate = useNavigate();
   const [backendError, setBackendError] = useState(null);
-  const { singin } = useAuth();
+  const { user,singin } = useAuth();
   const onSubmit = async (data) => {
     try {
       // ⬇️ 1. Llamamos al endpoint login
@@ -24,15 +24,26 @@ export default function LoginForm() {
       const loginData = response.data;
 
       console.log("[Login] respuesta backend:", loginData);
+       console.log("ROL:", loginData.role);
+      
 
       // ⬇️ 2. Guardamos todo lo necesario en localStorage
       localStorage.setItem("token", loginData.token);
       localStorage.setItem("username", loginData.username);
       localStorage.setItem("customerId", loginData.customerId);      // ⭐ IMPORTANTE
       localStorage.setItem("identityUserId", loginData.identityUserId);
+      localStorage.setItem("roles", JSON.stringify(loginData.roles));
       singin(response.data);
+      const userRole = loginData.role;
       // ⬇️ 3. Redirigimos al home o carrito
-      navigate('/');
+
+       if(userRole == 'Admin'){
+         navigate('/admin/home');
+      }else{
+        navigate('/');
+      }
+
+     
 
     } catch (error) {
       console.error("[Login] error:", error);
