@@ -14,9 +14,11 @@ function Home() {
     const fetchSummary = async () => {
       try {
         const response = await fetch('/api/dashboard/summary');
+
         if (!response.ok) throw new Error('Error al cargar el resumen');
 
         const data = await response.json();
+
         setStats({
           totalProducts: data.totalProducts,
           totalOrders: data.totalOrders,

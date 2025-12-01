@@ -14,7 +14,7 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    document.body.style.overflow = openMenu ? "hidden" : "auto";
+    document.body.style.overflow = openMenu ? 'hidden' : 'auto';
   }, [openMenu]);
 
   const getLinkStyles = ({ isActive }) =>
@@ -66,55 +66,54 @@ function Dashboard() {
 
       {/* SIDEBAR */}
       <aside
-  className={`
+        className={`
     fixed z-[9999] sm:relative sm:z-auto
     top-0 left-0 h-full w-64
     bg-white shadow-xl p-6 rounded-r-2xl
     transform transition-transform duration-300
-    ${openMenu ? "translate-x-0" : "-translate-x-full"}
+    ${openMenu ? 'translate-x-0' : '-translate-x-full'}
     sm:translate-x-0
   `}
->
-  <nav>
-    <ul className="flex flex-col">
+      >
+        <nav>
+          <ul className="flex flex-col">
 
-      <li>
-        <NavLink
-          to="/admin/home"
-          className={getLinkStyles}
-          onClick={() => setOpenMenu(false)}
-        >
+            <li>
+              <NavLink
+                to="/admin/home"
+                className={getLinkStyles}
+                onClick={() => setOpenMenu(false)}
+              >
           Principal
-        </NavLink>
-      </li>
+              </NavLink>
+            </li>
 
-      <li>
-        <NavLink
-          to="/admin/products"
-          className={getLinkStyles}
-          onClick={() => setOpenMenu(false)}
-        >
+            <li>
+              <NavLink
+                to="/admin/products"
+                className={getLinkStyles}
+                onClick={() => setOpenMenu(false)}
+              >
           Productos
-        </NavLink>
-      </li>
+              </NavLink>
+            </li>
 
-      <li>
-        <NavLink
-          to="/admin/orders"
-          className={getLinkStyles}
-          onClick={() => setOpenMenu(false)}
-        >
+            <li>
+              <NavLink
+                to="/admin/orders"
+                className={getLinkStyles}
+                onClick={() => setOpenMenu(false)}
+              >
           Ordenes
-        </NavLink>
-      </li>
+              </NavLink>
+            </li>
 
-    </ul>
-    <hr className="opacity-15 mt-4" />
-  </nav>
+          </ul>
+          <hr className="opacity-15 mt-4" />
+        </nav>
 
-  {renderLogoutButton(true)}
-</aside>
-
+        {renderLogoutButton(true)}
+      </aside>
 
       {/* MAIN */}
       <main className="p-5 overflow-y-scroll">

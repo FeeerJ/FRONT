@@ -20,7 +20,7 @@ function CreateProductForm() {
       description: '',
       price: 0,
       stock: 0,
-      isActive: true
+      isActive: true,
     },
   });
 

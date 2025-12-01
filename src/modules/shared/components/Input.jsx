@@ -6,9 +6,9 @@ export default function Input({ label, error = '', ...restProps }) {
 
       <input
         className={`border p-2 rounded ${
-          error ? "border-red-400" : "border-gray-300"
+          error ? 'border-red-400' : 'border-gray-300'
         }`}
-        {...restProps} 
+        {...restProps}
       />
 
       {error && <p className="text-red-500 text-xs">{error}</p>}

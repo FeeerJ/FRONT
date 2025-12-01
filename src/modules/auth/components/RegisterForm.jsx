@@ -19,7 +19,7 @@ export default function RegisterForm() {
         email: data.email,
         password: data.password,
         name: data.name,
-        phoneNumber: data.phoneNumber
+        phoneNumber: data.phoneNumber,
       });
 
       navigate('/login');
@@ -40,22 +40,22 @@ export default function RegisterForm() {
           error={errors.username?.message}
           {...register('username', {
             required: 'El usuario es obligatorio',
-            minLength: { value: 3, message: 'Mínimo 3 caracteres' }
+            minLength: { value: 3, message: 'Mínimo 3 caracteres' },
           })}
         />
 
-        <Input 
-         label= "Nombre Completo"
-         error = {errors.name?.message}{...register('name', {
-          required: 'El nombre es obligatorio',
-          minLength: { value: 3, message: 'Mínimo 3 caracteres' }
-         })} 
+        <Input
+          label= "Nombre Completo"
+          error = {errors.name?.message}{...register('name', {
+            required: 'El nombre es obligatorio',
+            minLength: { value: 3, message: 'Mínimo 3 caracteres' },
+          })}
         />
 
         <Input
           label="Teléfono"
           error={errors.phoneNumber?.message}
-          {...register('phoneNumber', {required: 'El teléfono es obligatorio', minLength: { value: 7, message: 'Mínimo 7 caracteres' }})}
+          {...register('phoneNumber', { required: 'El teléfono es obligatorio', minLength: { value: 7, message: 'Mínimo 7 caracteres' } })}
         />
 
         <Input
@@ -65,8 +65,8 @@ export default function RegisterForm() {
             required: 'El email es obligatorio',
             pattern: {
               value: /\S+@\S+\.\S+/,
-              message: 'Formato de email inválido'
-            }
+              message: 'Formato de email inválido',
+            },
           })}
         />
 
@@ -76,7 +76,7 @@ export default function RegisterForm() {
           error={errors.password?.message}
           {...register('password', {
             required: 'La contraseña es obligatoria',
-            minLength: { value: 6, message: 'Mínimo 6 caracteres' }
+            minLength: { value: 6, message: 'Mínimo 6 caracteres' },
           })}
         />
 
@@ -87,7 +87,7 @@ export default function RegisterForm() {
           {...register('confirmPassword', {
             required: 'Debe confirmar la contraseña',
             validate: (value) =>
-              value === watch('password') || 'Las contraseñas no coinciden'
+              value === watch('password') || 'Las contraseñas no coinciden',
           })}
         />
 

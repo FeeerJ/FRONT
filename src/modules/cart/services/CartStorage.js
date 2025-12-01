@@ -1,12 +1,14 @@
-const CART_KEY = "cart";
+const CART_KEY = 'cart';
 
 // Obtiene el carrito desde localStorage
 export function getCart() {
   try {
     const stored = localStorage.getItem(CART_KEY);
+
     return stored ? JSON.parse(stored) : [];
   } catch (e) {
-    console.error("[cartStorage] Error al leer carrito:", e);
+    console.error('[cartStorage] Error al leer carrito:', e);
+
     return [];
   }
 }
@@ -16,7 +18,7 @@ export function saveCart(cart) {
   try {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
   } catch (e) {
-    console.error("[cartStorage] Error al guardar carrito:", e);
+    console.error('[cartStorage] Error al guardar carrito:', e);
   }
 }
 
@@ -32,13 +34,16 @@ export function addToCart(product) {
   }
 
   saveCart(cart);
+
   return cart;
 }
 
 // Elimina un producto
 export function removeFromCart(productId) {
   const cart = getCart().filter(p => p.id !== productId);
+
   saveCart(cart);
+
   return cart;
 }
 
