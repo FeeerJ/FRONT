@@ -323,6 +323,23 @@ function ListProductsPage() {
                     Crear Producto
                   </Button>
                 )}
+
+                {location.pathname === "/admin/products" && (
+               <button
+                onClick={() => navigate("/admin/products/create")}
+                className="
+                  fixed bottom-6 right-6 z-[9500]
+                  w-14 h-14 rounded-full
+                  bg-purple-600 text-white
+                  flex items-center justify-center
+                  text-3xl shadow-xl
+                  hover:bg-purple-700 active:scale-95
+                  fixed bottom-6 right-6 z-[9500] w-14 h-14 h-14 sm:hidden ... "
+              >
+                +
+              </button>
+                )}
+
               </div>
             </div>
           )}
