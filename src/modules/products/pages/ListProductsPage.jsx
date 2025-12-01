@@ -326,10 +326,18 @@ function ListProductsPage() {
                   </Button>
                 )}
 
-                {location.pathname === "/admin/products" && (
+              
+
+              </div>
+            </div>
+          )}
+           
+           {/* BOTON PARA CREAR PRODUCTO VERSION MOBILE */}
+           {location.pathname === "/admin/products" && (
                <button
                 onClick={() => navigate("/admin/products/create")}
                 className="
+                  sm:hidden flex
                   fixed bottom-6 right-6 z-[9500]
                   w-14 h-14 rounded-full
                   bg-purple-600 text-white
@@ -340,13 +348,9 @@ function ListProductsPage() {
               >
                 +
               </button>
-                )}
-
-              </div>
-            </div>
-          )}
-
-
+                )} 
+          
+          {/* NAVEGACION DE LA PAGINACION VERSION MOBILE */}
           <div className="sm:hidden flex items-center justify-center gap-3 mt-6">
           <button
             onClick={() => setPageNumber(pageNumber - 1)}
