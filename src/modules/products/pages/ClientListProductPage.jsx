@@ -50,6 +50,7 @@ const ClientProductsPage = () => {
                 name: product.name,
                 price: product.currentUnitPrice,
                 quantity: quantity,
+            
             });
         }
 
@@ -86,12 +87,13 @@ const ClientProductsPage = () => {
             const result = await response.json(); 
             
             // Suponemos que el backend devuelve un array (aunque idealmente debería ser un objeto con metadatos)
-            setProducts(result); 
-            
+           
+            const activeProducts = result.filter(p => p.isActive === true);
+            setProducts(activeProducts);
             // Lógica de Paginación Front-end (Temporal si el Backend no la implementa)
-            setTotalItems(result.length); 
+            setTotalItems(activeProducts.length); 
             setTotalPages(1); // Placeholder, si el backend no devuelve totalPages
-            if (currentPage > 1 && result.length === 0) {
+            if (currentPage > 1 && activeProducts.length === 0) {
                  setCurrentPage(1); // Vuelve a la página 1 si no hay datos
             }
 
