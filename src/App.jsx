@@ -3,13 +3,13 @@ import { AuthProvider } from './modules/auth/context/AuthProvider';
 import LoginPage from './modules/auth/pages/LoginPage';
 import RegisterPage from './modules/auth/pages/RegisterPage'
 import Dashboard from './modules/templates/components/Dashboard';
-import ProtectedRoute from './modules/auth/components/ProtectedRoute';
+import ProtectedRoute from './modules/shared/components/ProtectedRoute'; /* Cambiamos la ubicacion del protectedRoute */
 import ListOrdersPage from './modules/orders/pages/ListOrdersPage';
 import Home from './modules/home/pages/Home';
 import ListProductsPage from './modules/products/pages/ListProductsPage';
 import ClientProductPage from './modules/products/pages/ClientListProductPage';
 import CreateProductPage from './modules/products/pages/CreateProductPage';
-import CartPage from './modules/products/pages/CartPage';
+import CartPage from './modules/cart/pages/CartPage';
 
 function App() {
   const router = createBrowserRouter([

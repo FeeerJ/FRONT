@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Button from '../../shared/components/Button';
 import ProductCard from '../components/ProductCard'; 
 import ProductSearchBar from '../components/ProducSearchBar'; 
-import CartIcon from '../components/CartIcon'; // Componente de ícono de navegación al carrito
+import CartIcon from '../../cart/components/CartIcon'; // Componente de ícono de navegación al carrito
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../auth/hook/useAuth';
 

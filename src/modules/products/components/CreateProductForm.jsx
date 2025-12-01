@@ -5,7 +5,7 @@ import Card from '../../shared/components/Card';
 import Input from '../../shared/components/Input';
 import { createProduct } from '../services/create';
 import { useState } from 'react';
-import { frontendErrorMessage } from '../helpers/backendError';
+import { frontendErrorMessage } from '../../shared/helpers/backendError';
 
 function CreateProductForm() {
   const {
