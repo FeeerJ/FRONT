@@ -284,7 +284,7 @@ function ListProductsPage() {
 
           {/* Controles de Paginación */}
           {totalPages > 1 && (
-            <div className='flex justify-between items-center mt-6 space-x-3'>
+            <div className='hidden sm:block flex justify-between items-center mt-6 space-x-3'>
               <div className='flex items-center space-x-3'>
                 <button
                   disabled={pageNumber === 1 || loading}
@@ -312,13 +312,15 @@ function ListProductsPage() {
                   <option value="20">20 por página</option>
                 </select>
               </div>
+              
+               
 
               {/* Admin-only button placed next to pagination for better layout */}
               <div>
                 {user?.role === 'Admin' && (
                   <Button
                     onClick={() => navigate('/admin/products/create')}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                    className="hidden sm:block px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
                   >
                     Crear Producto
                   </Button>
@@ -343,6 +345,30 @@ function ListProductsPage() {
               </div>
             </div>
           )}
+
+
+          <div className="sm:hidden flex items-center justify-center gap-3 mt-6">
+          <button
+            onClick={() => setPageNumber(pageNumber - 1)}
+            disabled={pageNumber === 1 || loading}
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full disabled:opacity-40 active:scale-95 transition"
+          >
+            ←
+          </button>
+
+          <span className="px-4 py-2 bg-purple-100 text-purple-700 rounded-full font-semibold shadow-sm">
+            {pageNumber} / {totalPages}
+          </span>
+
+          <button
+            onClick={() => setPageNumber(pageNumber + 1)}
+            disabled={pageNumber === totalPages || loading}
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full disabled:opacity-40 active:scale-95 transition"
+          >
+            →
+          </button>
+        </div>
+
         </div>
       );
   }
