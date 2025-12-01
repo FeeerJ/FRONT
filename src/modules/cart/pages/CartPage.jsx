@@ -46,9 +46,11 @@ const CartPage = () => {
                 <h1 className="text-3xl font-bold text-gray-800">Tu Carrito</h1>
                 <button
                     onClick={() => navigate(-1)}
-                    className="px-3 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm shadow-sm"
+                    className="hidden md:block ml-2 px-5 py-2 min-w-[140px] 
+                        rounded-full bg-white border border-purple-600 text-purple-600
+                         font-semibold hover:bg-purple-600 hover:text-white transition-shadow"
                 >
-                    ← Volver
+                    Volver
                 </button>
             </div>
 
