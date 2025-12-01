@@ -46,9 +46,13 @@ const CartPage = () => {
                 <h1 className="text-3xl font-bold text-gray-800">Tu Carrito</h1>
                 <button
                     onClick={() => navigate(-1)}
-                    className="hidden md:block ml-2 px-5 py-2 min-w-[140px] 
-                        rounded-full bg-white border border-purple-600 text-purple-600
-                         font-semibold hover:bg-purple-600 hover:text-white transition-shadow"
+                    className="ml-2 px-4 py-2 min-w-[100px] rounded-full 
+                        bg-white border border-purple-600 text-purple-600 font-semibold 
+                        hover:bg-purple-600 hover:text-white transition-shadow 
+                        /* Clases específicas para DESKTOP (md: */
+                        md:px-5 md:py-2 md:min-w-[140px] md:text-base 
+                        /* Clases específicas para MOBILE (menos padding/min-width) */
+                        text-sm"
                 >
                     Volver
                 </button>
@@ -136,6 +140,8 @@ const CartPage = () => {
                 {/* MOBILE LAYOUT (solo móviles) */}
                 {/* ------------------------------ */}
                 <div className="md:hidden space-y-6">
+                
+                   
 
                     {/* LISTA MOBILE */}
                     <div className="space-y-4">
