@@ -8,7 +8,7 @@ import Input from '../../shared/components/Input';
 import Button from '../../shared/components/Button';
 import Card from '../../shared/components/Card';
 
-export default function LoginForm() {
+export default function LoginForm({ onSuccess })  {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const navigate = useNavigate();
   const [backendError, setBackendError] = useState(null);
@@ -34,6 +34,7 @@ export default function LoginForm() {
       localStorage.setItem("identityUserId", loginData.identityUserId);
       localStorage.setItem("roles", JSON.stringify(loginData.roles));
       singin(response.data);
+       if (onSuccess) onSuccess();
       const userRole = loginData.role;
       // ⬇️ 3. Redirigimos al home o carrito
 
@@ -43,7 +44,7 @@ export default function LoginForm() {
         navigate('/');
       }
 
-     
+    
 
     } catch (error) {
       console.error("[Login] error:", error);

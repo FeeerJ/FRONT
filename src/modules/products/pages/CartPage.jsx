@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Button from '../../shared/components/Button';
 import { useNavigate } from 'react-router-dom';
-import LoginPage from '../../auth/pages/LoginPage'; // Asumimos que esta es la página/formulario de login
+import LoginForm from '../../auth/components/LoginForm'; // Asumimos que esta es la página/formulario de login
 import useAuth from '../../auth/hook/useAuth'; // Hook para el estado de autenticación (isAuthenticated)
 
 // Componente Placeholder para el Modal (debe ser implementado en shared/components/Modal.jsx)
@@ -322,7 +322,7 @@ const CartPage = () => {
             {isModalOpen && (
                 <Modal onClose={() => setIsModalOpen(false)}>
                     <h2 className="text-2xl font-bold mb-4 text-center">Inicia Sesión</h2>
-                    <LoginPage onSuccess={handleLoginSuccess} />
+                    <LoginForm onSuccess={handleLoginSuccess} />
                 </Modal>
             )}
         </div>
