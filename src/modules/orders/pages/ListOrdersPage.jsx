@@ -233,7 +233,7 @@ const ListOrdersPage = () => {
             </div>
 
             {/* PAGINACIÓN */}
-            {totalPages > 1 && (
+            {totalPages > 1 && ( /* si en la vista no existen como minimo 10 ordenes, es decir, lo que llega 1 pagina no se muestran los elementos de paginacion*/ 
                 <div className='flex justify-center items-center mt-6 space-x-3'>
                     <button
                         disabled={pageNumber === 1 || loading}

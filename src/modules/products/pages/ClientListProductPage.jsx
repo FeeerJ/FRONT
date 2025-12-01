@@ -1,248 +1,223 @@
+// src/modules/products/pages/ClientProductsPage.jsx
 import React, { useState, useEffect } from 'react';
 import Button from '../../shared/components/Button';
-import ProductCard from '../components/ProductCard'; 
-import ProductSearchBar from '../components/ProducSearchBar'; 
-import CartIcon from '../../cart/components/CartIcon'; // Componente de ícono de navegación al carrito
+import ProductCard from '../components/ProductCard';
+import ProductSearchBar from '../components/ProducSearchBar';
+import CartIcon from '../../cart/components/CartIcon';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../auth/hook/useAuth';
+import ClientMenu from '../../client/components/ClientMenu';
 
 const ClientProductsPage = () => {
-    // Estado para la lista de productos
+    // --- Estados ---
     const [products, setProducts] = useState([]);
-    
-    // Estados de Búsqueda (Input y el término que dispara el fetch)
+    const [menuOpen, setMenuOpen] = useState(false);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [currentSearchTerm, setCurrentSearchTerm] = useState('');
-    
-    // Estados de Paginación
+
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(12); // Productos por página
-    const [totalPages, setTotalPages] = useState(1);     
-    const [totalItems, setTotalItems] = useState(0);     
-    
+    const [itemsPerPage] = useState(12);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // --- Lógica del Carrito (LocalStorage) y Notificación ---
-
     const navigate = useNavigate();
-    const { user, isAuthenticated, singout } = useAuth();
+    const { isAuthenticated, singout } = useAuth();
+
+    // --- Agregar al carrito ---
     const handleAddToCart = (product, quantity) => {
         if (quantity < 1) {
-            alert('Debes seleccionar al menos 1 unidad para agregar.');
+            alert('Debes seleccionar al menos 1 unidad.');
             return;
         }
 
-        const currentCartJSON = localStorage.getItem('cart');
-        let cart = currentCartJSON ? JSON.parse(currentCartJSON) : [];
-        const productId = product.id; 
+        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
 
-        const existingProductIndex = cart.findIndex(item => item.id === productId);
+        const index = cart.findIndex(item => item.id === product.id);
 
-        if (existingProductIndex > -1) {
-            // Producto existe: actualiza la cantidad
-            cart[existingProductIndex].quantity += quantity;
+        if (index !== -1) {
+            cart[index].quantity += quantity;
         } else {
-            // Producto nuevo: agregarlo con la cantidad
             cart.push({
-                id: productId,
+                id: product.id,
                 sku: product.sku,
                 name: product.name,
                 price: product.currentUnitPrice,
-                quantity: quantity,
-            
+                quantity
             });
         }
 
         localStorage.setItem('cart', JSON.stringify(cart));
-        console.log(`Agregado ${quantity} x ${product.name}. Carrito actualizado!`);
-        
-        // Notificación para actualizar el ícono del carrito
-        window.dispatchEvent(new Event('cartUpdated')); 
+        window.dispatchEvent(new Event('cartUpdated'));
     };
-    
-    // --- Lógica de Fetch y API ---
 
+    // --- Fetch de productos ---
     const fetchProducts = async () => {
         setIsLoading(true);
         setError(null);
-        
-        // Construcción de la Query String con paginación y el término de búsqueda confirmado
+
         const params = new URLSearchParams({
             page: currentPage,
             limit: itemsPerPage,
-            search: currentSearchTerm,
+            search: currentSearchTerm
         }).toString();
 
         try {
-            // Llama a '/api/catalog' o '/api/products' (dependiendo de tu backend)
-            const response = await fetch(`/api/products?${params}`); 
+            const response = await fetch(`/api/products?${params}`);
 
-            if (!response.ok) {
-                // Manejo de errores de red o servidor
-                const errorText = await response.text(); 
-                throw new Error(`Error en la red: ${response.status}.`);
-            }
-            
-            const result = await response.json(); 
-            
-            // Suponemos que el backend devuelve un array (aunque idealmente debería ser un objeto con metadatos)
-           
-            const activeProducts = result.filter(p => p.isActive === true);
+            if (!response.ok) throw new Error(`Error en la red: ${response.status}`);
+
+            const data = await response.json();
+
+            const activeProducts = data.filter(p => p.isActive);
             setProducts(activeProducts);
-            // Lógica de Paginación Front-end (Temporal si el Backend no la implementa)
-            setTotalItems(activeProducts.length); 
-            setTotalPages(1); // Placeholder, si el backend no devuelve totalPages
-            if (currentPage > 1 && activeProducts.length === 0) {
-                 setCurrentPage(1); // Vuelve a la página 1 si no hay datos
-            }
 
+            setTotalItems(activeProducts.length);
+            setTotalPages(1);
         } catch (err) {
-            console.error("Error al obtener productos:", err);
-            setError(err.message || "No se pudo conectar con el servidor.");
+            setError(err.message);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // useEffect para disparar el fetch al cambiar las dependencias de control
     useEffect(() => {
         fetchProducts();
-    }, [currentPage, itemsPerPage, currentSearchTerm]); 
+    }, [currentPage, currentSearchTerm]);
 
-    // --- Lógica de Búsqueda y Paginación UI ---
-
-    const handleSearchChange = (event) => {
-        setSearchTerm(event.target.value); 
-    };
-
+    // --- Handlers de búsqueda ---
+    const handleSearchChange = (e) => setSearchTerm(e.target.value);
     const handleSearchSubmit = () => {
-        // Al buscar, reinicia a la página 1 y dispara el fetch
-        setCurrentPage(1); 
+        setCurrentPage(1);
         setCurrentSearchTerm(searchTerm);
     };
-    
-    const goToNextPage = () => {
-        setCurrentPage(prev => Math.min(prev + 1, totalPages)); 
-    };
-    
-    const goToPrevPage = () => {
-        setCurrentPage(prev => Math.max(prev - 1, 1)); 
-    };
 
+    const goToPrevPage = () => setCurrentPage(p => Math.max(p - 1, 1));
+    const goToNextPage = () => setCurrentPage(p => Math.min(p + 1, totalPages));
 
-    // --- RENDERIZADO ---
+    // --- Render de carga y error ---
+    if (isLoading && products.length === 0)
+        return <div className="text-center mt-10">Cargando catálogo...</div>;
 
-    if (isLoading && products.length === 0) {
-        return <div className="text-center mt-10 p-6">Cargando catálogo...</div>;
-    }
-
-    if (error) {
+    if (error)
         return (
-            <div className="text-center mt-10 p-6 bg-red-100 border border-red-400 text-red-700 rounded mx-auto max-w-lg">
-                <p className="font-bold">Error de conexión:</p>
-                <p>{error}</p>
+            <div className="text-center mt-10 bg-red-100 p-4 rounded text-red-700">
+                Error: {error}
             </div>
         );
-    }
-    
+
     return (
         <div className="container mx-auto p-4 md:p-8">
-            
-            {/* --- CABECERA (TÍTULO, BUSCADOR Y CARRITO) --- */}
-            <div className="flex justify-between items-center mb-6 flex-wrap">
-                <h1 className="text-4xl font-extrabold text-gray-800 mb-4 md:mb-0">Catálogo de Productos</h1>
-                
-                {/* Contenedor para el buscador y el carrito (alineados a la derecha) */}
-                <div className="flex items-center space-x-4">
-                    {/* 1. Componente de Búsqueda */}
+
+            {/* --- HEADER --- */}
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+                <h1 className="text-4xl font-extrabold text-gray-800">
+                    Catálogo de Productos
+                </h1>
+
+                <div className="w-full md:w-auto flex items-center justify-between md:justify-end gap-3">
+
+                    {/* Buscador */}
                     <ProductSearchBar
                         searchTerm={searchTerm}
                         onSearchChange={handleSearchChange}
                         onSearchSubmit={handleSearchSubmit}
                         isLoading={isLoading}
                     />
-                    
-                    {/* 2. Ícono de Carrito y Navegación */}
+
+                    {/* Carrito */}
                     <CartIcon />
-                    {/* 3. Botón de Login / Logout */}
+
+                    {/* Botón hamburguesa (solo mobile) */}
+                    <button
+                        onClick={() => setMenuOpen(true)}
+                        className="md:hidden text-3xl font-bold text-gray-700 hover:text-purple-600"
+                    >
+                        ☰
+                    </button>
+
+                    {/* Botón Cerrar Sesión (solo desktop) */}
                     <Button
                         onClick={() => {
                             if (isAuthenticated) {
-                                // Cerrar sesión: limpiar información local y redirigir a la página de login
-                                try {
-                                    singout();
-                                } catch (e) {
-                                    console.debug('Error calling singout', e);
-                                }
-                                // En singout ya limpiamos localStorage; asegurar customerId removido
-                                try { localStorage.removeItem('customerId'); } catch (e) {}
-                                // Notificar componentes que dependan del carrito
-                                try { window.dispatchEvent(new Event('cartUpdated')); } catch (e) {}
+                                try { singout(); } catch {}
+                                try { localStorage.removeItem('customerId'); } catch {}
+                                try { window.dispatchEvent(new Event('cartUpdated')); } catch {}
                                 navigate('/login');
                             } else {
                                 navigate('/login');
                             }
                         }}
-                        className="ml-2 px-5 py-2 min-w-[140px] rounded-full bg-white border border-purple-600 text-purple-600 font-semibold hover:bg-purple-600 hover:text-white transition-shadow shadow-sm hover:shadow-md"
+                        className="hidden md:block ml-2 px-5 py-2 min-w-[140px] rounded-full bg-white border border-purple-600 text-purple-600 font-semibold hover:bg-purple-600 hover:text-white transition-shadow"
                     >
                         {isAuthenticated ? 'Cerrar Sesión' : 'Iniciar Sesión'}
                     </Button>
                 </div>
             </div>
-            
-            {/* --- CONTROLES DE PAGINACIÓN Y RESUMEN --- */}
+
+            {/* --- PAGINACIÓN --- */}
             <div className="mb-8 p-4 bg-white rounded-xl shadow-md flex justify-between items-center flex-wrap">
-                <span className="text-gray-600 text-sm mb-2 md:mb-0">
+                <span className="text-gray-600 text-sm">
                     Mostrando {products.length} de {totalItems} resultados.
                 </span>
-                
+
                 <div className="flex items-center space-x-2 text-sm">
-                    
-                    <Button 
+                    <Button
                         variant="secondary"
                         onClick={goToPrevPage}
                         disabled={currentPage === 1 || isLoading}
-                        className="px-3 py-1 text-xs rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                        className="px-3 py-1 text-xs rounded-full bg-gray-100"
                     >
                         Anterior
                     </Button>
-                    
+
                     <span className="font-semibold text-gray-800 px-3 py-1 bg-purple-100 rounded-full">
                         {currentPage} / {totalPages}
                     </span>
-                    
+
                     <Button
                         variant="secondary"
                         onClick={goToNextPage}
                         disabled={currentPage === totalPages || isLoading}
-                        className="px-3 py-1 text-xs rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                        className="px-3 py-1 text-xs rounded-full bg-gray-100"
                     >
                         Siguiente
                     </Button>
                 </div>
             </div>
 
-            {/* --- CUADRÍCULA DE PRODUCTOS --- */}
+            {/* --- LISTA DE PRODUCTOS --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {isLoading && products.length === 0 ? (
-                    // Muestra un placeholder de carga inicial si aún no hay productos
-                    <p className="col-span-full text-center text-gray-500">Cargando...</p>
-                ) : products.map(product => (
-                    <ProductCard 
-                        key={product.id} 
-                        product={product} 
-                        onAddToCart={handleAddToCart} 
+                {products.map(product => (
+                    <ProductCard
+                        key={product.id}
+                        product={product}
+                        onAddToCart={handleAddToCart}
                         isLoading={isLoading}
                     />
                 ))}
             </div>
-            
-            {products.length === 0 && !isLoading && (
-                <p className="text-center text-lg text-gray-500 mt-10">
-                    No se encontraron productos con el filtro actual.
-                </p>
-            )}
+
+            {/* --- MENÚ MÓVIL --- */}
+            <ClientMenu
+                isOpen={menuOpen}
+                onClose={() => setMenuOpen(false)}
+               /* onGoToCart={() => {
+                    setMenuOpen(false);
+                    navigate('/cart');
+                }}*/
+                onLogout={() => {
+                    try { singout(); } catch {}
+                    try { localStorage.removeItem('customerId'); } catch {}
+                    try { window.dispatchEvent(new Event('cartUpdated')); } catch {}
+                    setMenuOpen(false);
+                    navigate('/login');
+                }}
+            />
+
         </div>
     );
 };
