@@ -23,44 +23,42 @@ const useAuth = () => {
 };
 
 // **Mock de getProducts:** Simula el fetch a /api/products
-const getProducts = async (searchTerm, _status, pageNumber, pageSize, token) => {
-  // Enviamos búsqueda y paginación al backend; si el backend no soporta `status`
-  // lo aplicaremos en frontend.
-  const params = new URLSearchParams({ 
-    search: searchTerm, 
-    page: pageNumber,
-    limit: pageSize,
+const getProducts = async (searchTerm, status, pageNumber, pageSize, token) => {
+
+  const params = new URLSearchParams({
+    search: searchTerm || "",
+    status: status === 'all' ? "" : status,
+    pageNumber,
+    pageSize,
   }).toString();
-    
-  try {
-    const url = `/api/products?${params}`;
-    console.debug('[Products] GET', url);
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
 
-        if (response.status === 401) {
-             // Lanza error 401 para que el componente padre lo maneje (redirección)
-            throw new Error("401 Unauthorized: Token inválido o expirado."); 
-        }
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `Error al obtener productos. Status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        // Asumimos que el backend devuelve un array directo, o { data: [...], totalCount: N }
-        const items = data.productItems || data;
-        const totalCount = data.totalCount || items.length;
-        console.debug('[Products] Fetched', items.length, 'items, totalCount=', totalCount);
-        return { data: items, totalCount };
+  const url = `/api/products/admin?${params}`;
+  console.debug("[Products] GET", url);
 
-    } catch (error) {
-        throw error;
+  const response = await fetch(url, {
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
     }
+  });
+
+  if (response.status === 401) {
+    throw new Error("401 Unauthorized");
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Error obteniendo productos");
+  }
+
+  // Tu backend devuelve:
+  // ProductResponsePagination(ProductItems, Total)
+  const data = await response.json();
+
+  return {
+    data: data.productItems,
+    totalCount: data.total
+  };
 };
 
 // **Mock de disableProduct:** Simula la petición PATCH
@@ -117,6 +115,7 @@ function ListProductsPage() {
       const { data, totalCount } = await getProducts(searchTerm, status, pageNumber, pageSize, token);
 
       // Si el backend no soporta filtrado por estado, aplicamos filtro en frontend.
+      /*
       let finalData = data;
       let finalTotal = totalCount;
       if (status && status !== productStatus.ALL) {
@@ -128,7 +127,9 @@ function ListProductsPage() {
 
       setTotal(finalTotal);
       setProducts(finalData);
-      
+      */
+     setProducts(data);
+     setTotal(totalCount);
     } catch (error) {
         // Capturamos el error 401 aquí para loguearlo, pero el Guard (ProtectedRoute)
         // debería haber actuado antes de que el usuario vea este error.
@@ -271,7 +272,7 @@ function ListProductsPage() {
                       {/* Botón único 'Ver' para ver detalles del producto */}
                       <Button
                         onClick={() => navigate(`/admin/products/view/${product.id}`)}
-                        className='w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white p-2 text-sm'
+                        className='bg-indigo-600 hover:bg-indigo-700 text-white p-2 text-sm'
                       >
                         Ver
                       </Button>
