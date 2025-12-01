@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form';
 import { instance } from '../../shared/api/axiosInstance';
 import { useNavigate, Link } from 'react-router-dom';
 import { useState } from 'react';
+import useAuth from '../hook/useAuth';
 
 import Input from '../../shared/components/Input';
 import Button from '../../shared/components/Button';
@@ -11,7 +12,7 @@ export default function LoginForm() {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const navigate = useNavigate();
   const [backendError, setBackendError] = useState(null);
-
+  const { singin } = useAuth();
   const onSubmit = async (data) => {
     try {
       // ⬇️ 1. Llamamos al endpoint login
@@ -29,7 +30,7 @@ export default function LoginForm() {
       localStorage.setItem("username", loginData.username);
       localStorage.setItem("customerId", loginData.customerId);      // ⭐ IMPORTANTE
       localStorage.setItem("identityUserId", loginData.identityUserId);
-
+      singin(response.data);
       // ⬇️ 3. Redirigimos al home o carrito
       navigate('/');
 

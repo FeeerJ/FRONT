@@ -149,6 +149,8 @@ const CartPage = () => {
             orderItems: cart.map((item) => ({ productoId: item.id, quantity: item.quantity })),
         };
 
+        console.debug('[Cart] FINAL orderData eviada al backend:', orderData);
+
         try {
             const ordersUrl = apiBase ? `${apiBase}/api/orders` : '/api/orders';
             const headers = {

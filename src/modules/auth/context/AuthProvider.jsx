@@ -89,65 +89,23 @@ function AuthProvider({ children }) {
         setUser(null);
     };
 
-    const singin = async (username, password) => {
-        // 1. Llamada al servicio de login
-        const { data, error } = await login(username, password);
+ const singin = (loginData) => {
+    const { token, username, customerId } = loginData;
 
-        if (error) {
-            return { error }; // Retorna el error si falla
-        }
-
-        // data puede ser una cadena (token) o un objeto { token: '...' }
-        const token = typeof data === 'string' ? data : data?.token;
-
-        if (!token) {
-            return { error: { frontendErrorMessage: 'No se recibió token del servidor' } };
-        }
-
-        // 2. Decodificar el token para obtener el rol y el token
-        const decoded = decodeToken(token);
-        console.debug('[Auth] signin: decoded', decoded);
-
-        // 3. Si el backend devuelve customerId explícito en la respuesta useDataCustomerId lo tomamos
-        const dataCustomerId = (typeof data === 'object' && data?.customerId) ? data.customerId : null;
-        const dataUsername = (typeof data === 'object' && data?.username) ? data.username : null;
-
-        // Preferimos el customerId decodificado del token si es GUID válido, si no, usamos el que venga en la respuesta
-        const effectiveCustomerId = decoded.customerId || dataCustomerId || null;
-
-
-        const newUser = { ...decoded, customerId: effectiveCustomerId };
-        if (dataUsername) {
-            newUser.username = dataUsername;
-        }
-        console.debug('[Auth] signin: dataCustomerId=', dataCustomerId, 'effectiveCustomerId=', effectiveCustomerId);
-
-        // 4. Actualizar el LocalStorage y el estado global (setUser)
-        localStorage.setItem('token', token);
-        if (effectiveCustomerId) {
-            try { localStorage.setItem('customerId', effectiveCustomerId); } catch (e) {}
-        }
-        if (dataUsername) {
-            try { localStorage.setItem('username', dataUsername); } catch (e) {}
-        }
-        // Si cambia la sesión (username distinto al previo), borrar el carrito para evitar mezclar items
-        try {
-            const prevUsername = localStorage.getItem('username');
-            const newUsername = dataUsername || username;
-            if (prevUsername && prevUsername !== newUsername) {
-                try { localStorage.removeItem('cart'); } catch (e) {}
-                try { window.dispatchEvent(new Event('cartUpdated')); } catch (e) {}
-            }
-        } catch (e) {
-            // no bloquear el signin por problemas de localStorage
-            console.debug('[Auth] error comprobando cambio de username para limpiar carrito', e);
-        }
-
-        setUser(newUser);
-
-        // 4. Retorna el objeto de usuario para que el LoginForm lo use
-        return { error: null, user: newUser };
+    const newUser = {
+        token,
+        username,
+        customerId
     };
+
+    localStorage.setItem("token", token);
+    localStorage.setItem("username", username);
+    localStorage.setItem("customerId", customerId);
+
+    setUser(newUser);
+};
+
+
     return (
         <AuthContext.Provider
             value={ {
