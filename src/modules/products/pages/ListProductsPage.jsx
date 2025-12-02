@@ -319,10 +319,7 @@ function ListProductsPage() {
                 <option value="15">15 por página</option>
                 <option value="20">20 por página</option>
               </select>
-            </div>
-
-            {/* Admin-only button placed next to pagination for better layout */}
-            <div>
+               <div>
               {user?.role === 'Admin' && (
                 <Button
                   onClick={() => navigate('/admin/products/create')}
@@ -333,6 +330,10 @@ function ListProductsPage() {
               )}
 
             </div>
+            </div>
+
+          
+           
           </div>
         )}
 
