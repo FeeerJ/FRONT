@@ -3,21 +3,18 @@ import { useNavigate, Link } from 'react-router-dom';
 import Button from '../../shared/components/Button';
 import Card from '../../shared/components/Card';
 
-// ====================================================================
-// TEMPORAL: Hooks y Servicios MOCK (Reemplaza por tus imports reales)
-// ====================================================================
 
-// **Mock de useAuth:** Asume que tu hook REAL devuelve { user: { token: 'JWT_TOKEN_VALOR' } }
+
 const useAuth = () => {
   const [user, setUser] = useState({ token: localStorage.getItem('token') || null });
 
-  // En una aplicación real, esta lógica sería más compleja, cargando desde storage
+  
   useEffect(() => {
-    // Simulación: si hay un token en localStorage, se considera logeado.
+    
     const token = localStorage.getItem('token');
 
     if (token) {
-      // Asegúrate de que el token sea accesible, típicamente se carga en el inicio de la app
+      
       setUser({ token, role: 'Admin' });
     }
   }, []);
@@ -25,7 +22,7 @@ const useAuth = () => {
   return { user };
 };
 
-// **Mock de getProducts:** Simula el fetch a /api/products
+
 const getProducts = async (searchTerm, status, pageNumber, pageSize, token) => {
 
   const params = new URLSearchParams({
@@ -56,8 +53,7 @@ const getProducts = async (searchTerm, status, pageNumber, pageSize, token) => {
     throw new Error(errorData.message || 'Error obteniendo productos');
   }
 
-  // Tu backend devuelve:
-  // ProductResponsePagination(ProductItems, Total)
+ 
   const data = await response.json();
 
   return {
@@ -69,7 +65,7 @@ const getProducts = async (searchTerm, status, pageNumber, pageSize, token) => {
 // **Mock de disableProduct:** Simula la petición PATCH
 const disableProduct = async (id, token) => {
   const response = await fetch(`/api/products/${id}`, {
-    method: 'PATCH', // Usamos PATCH para deshabilitar... DisableProduct(Guid id)]
+    method: 'PATCH', 
     headers: {
       'Authorization': `Bearer ${token}`,
     },
@@ -113,7 +109,7 @@ function ListProductsPage() {
     if (!token) {
       setLoading(false);
 
-      // Si el token no está, salimos. ProtectedRoute debe manejar la redirección.
+      
       return;
     }
 
@@ -121,28 +117,14 @@ function ListProductsPage() {
       setLoading(true);
       const { data, totalCount } = await getProducts(searchTerm, status, pageNumber, pageSize, token);
 
-      // Si el backend no soporta filtrado por estado, aplicamos filtro en frontend.
-      /*
-      let finalData = data;
-      let finalTotal = totalCount;
-      if (status && status !== productStatus.ALL) {
-        // Mapeamos el filtro a la propiedad booleana isActive
-        const wantEnabled = status === productStatus.ENABLED;
-        finalData = data.filter(p => !!p.isActive === wantEnabled);
-        finalTotal = finalData.length; // Nota: solo del lote recibido
-      }
-
-      setTotal(finalTotal);
-      setProducts(finalData);
-      */
+      
       setProducts(data);
       setTotal(totalCount);
     } catch (error) {
-      // Capturamos el error 401 aquí para loguearlo, pero el Guard (ProtectedRoute)
-      // debería haber actuado antes de que el usuario vea este error.
+      
       console.error('Error fetching products. Código:', error.message);
 
-      // Si el error es 401, forzamos la salida para que ProtectedRoute lo maneje
+     
       if (error.message.includes('401')) {
         navigate('/login');
       }
@@ -152,9 +134,7 @@ function ListProductsPage() {
     }
   };
 
-  // SOLUCIÓN AL PROBLEMA DE REDIRECCIÓN AL LOGIN
-  // El fetch solo se ejecuta cuando el estado de autenticación (isAuthenticated) es true
-  // Esto evita enviar peticiones 401 con tokens expirados/nulos al inicio de la carga.
+  
   useEffect(() => {
     if (isAuthenticated) {
       fetchProducts();
