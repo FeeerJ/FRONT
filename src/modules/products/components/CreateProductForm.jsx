@@ -33,12 +33,26 @@ function CreateProductForm() {
 
       navigate('/admin/products');
     } catch (error) {
-      if (error.response?.data?.detail) {
-        const errorMessage = frontendErrorMessage[error.response.data.code];
+      console.log('ERROR COMPLETO:', error);
 
-        setErrorBackendMessage(errorMessage);
-      } else {
-        setErrorBackendMessage('Contactar a Soporte');
+      const data = error.response?.data;
+      const backMsg = data?.Message;
+      const backCode = data?.code;
+
+      console.log('BACK MSG:', backMsg);
+      console.log('BACK CODE:', backCode);
+
+      const mappedMsg = frontendErrorMessage[backCode];
+
+      if (mappedMsg) {
+        setErrorBackendMessage(mappedMsg);
+      }
+      else if (backMsg) {
+        alert( backMsg);
+        // setErrorBackendMessage(backMsg);
+      }
+      else {
+        setErrorBackendMessage('Error desconocido al crear el producto');
       }
     }
   };

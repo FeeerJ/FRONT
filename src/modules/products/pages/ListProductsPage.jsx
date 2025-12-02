@@ -319,21 +319,19 @@ function ListProductsPage() {
                 <option value="15">15 por página</option>
                 <option value="20">20 por página</option>
               </select>
-               <div>
-              {user?.role === 'Admin' && (
-                <Button
-                  onClick={() => navigate('/admin/products/create')}
-                  className="hidden sm:block px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
-                >
+              <div>
+                {user?.role === 'Admin' && (
+                  <Button
+                    onClick={() => navigate('/admin/products/create')}
+                    className="hidden sm:block px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                  >
                     Crear Producto
-                </Button>
-              )}
+                  </Button>
+                )}
 
-            </div>
+              </div>
             </div>
 
-          
-           
           </div>
         )}
 
