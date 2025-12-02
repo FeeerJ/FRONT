@@ -119,55 +119,9 @@ const ClientProductsPage = () => {
         <h1 className="text-4xl font-extrabold text-gray-800">
                     Catálogo de Productos
         </h1>
-
-        <div className="w-full md:w-auto flex items-center justify-between md:justify-end gap-3">
-
-          {/* Buscador */}
-          <ProductSearchBar
-            searchTerm={searchTerm}
-            onSearchChange={handleSearchChange}
-            onSearchSubmit={handleSearchSubmit}
-            isLoading={isLoading}
-          />
-
-          {/* Carrito */}
-          <CartIcon />
-
-          {/* Botón hamburguesa (solo mobile) */}
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="md:hidden text-3xl font-bold text-gray-700 hover:text-purple-600"
-          >
-                        ☰
-          </button>
-
-          {/* Botón Cerrar Sesión (solo desktop) */}
-          <Button
-            onClick={() => {
-              if (isAuthenticated) {
-                try { singout(); } catch (e) {
-                  console.error('[ClientProductsPage] Error during signout:', e);
-                }
-                try { localStorage.removeItem('customerId'); } catch (e) {
-                  console.error('[ClientProductsPage] Error removing customerId from localStorage:', e);
-                }
-                try { window.dispatchEvent(new Event('cartUpdated')); } catch (e) {
-                  console.error('[ClientProductsPage] Error dispatching cartUpdated event:', e);
-                }
-                navigate('/login');
-              } else {
-                navigate('/login');
-              }
-            }}
-            className="hidden md:block ml-2 px-5 py-2 min-w-[140px]
-                        rounded-full bg-white border border-purple-600 text-purple-600
-                         font-semibold hover:bg-purple-600 hover:text-white transition-shadow"
-          >
-            {isAuthenticated ? 'Cerrar Sesión' : 'Iniciar Sesión'}
-          </Button>
         </div>
-      </div>
 
+        
       {/* --- PAGINACIÓN --- */}
       <div className="mb-8 p-4 bg-white rounded-xl shadow-md flex justify-between items-center flex-wrap">
         <span className="text-gray-600 text-sm">
@@ -235,6 +189,7 @@ const ClientProductsPage = () => {
       />
 
     </div>
+
   );
 };
 

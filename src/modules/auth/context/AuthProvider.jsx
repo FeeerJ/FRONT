@@ -1,20 +1,15 @@
 import React, { createContext, useState } from 'react';
 
-// ====================================================================
-// UTILIDAD: Decodificación JWT (Conceptual)
-// Asumimos que el 'role' está en el payload del JWT
-// ====================================================================
-
-// Función para decodificar el token y extraer claims útiles (rol y customerId)
+// Función para decodificar el token y extraer claims útiles (rol y customerId) Descompone el Token en tres partes, 
 const decodeToken = (token) => {
   try {
     const payloadBase64 = token.split('.')[1];
     const payload = JSON.parse(atob(payloadBase64));
 
-    // Role puede venir en varias claims
+    // el rol puede venir en varias claims
     const roleClaim = payload.role || payload['role'] || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
 
-    // Buscar customerId en varias posibles claims comunes
+    // Busca customerId en varias posibles claims comunes
     const idCandidates = [
       'nameidentifier', 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier',
       'sub', 'id', 'userId', 'user_id', 'customerId',
@@ -58,10 +53,10 @@ function AuthProvider({ children }) {
   // CAMBIO 1: Estado para el objeto de usuario (token y role)
   const [user, setUser] = useState(() => {
     const token = localStorage.getItem('token');
-
+    /* Si existe un token */
     if (token) {
       console.debug('[Auth] init: token found');
-      const decoded = decodeToken(token);
+      const decoded = decodeToken(token); /* va a intentar decodificarlo */
 
       console.debug('[Auth] init: decoded payload', decoded);
 
@@ -129,7 +124,7 @@ function AuthProvider({ children }) {
     <AuthContext.Provider
       value={ {
         isAuthenticated,
-        user, // EXPORNER EL OBJETO USER COMPLETO
+        user, // estas opciones de valores y funcionenen van a quedar disponibles para el resto de la app
         singin,
         singout,
       } }

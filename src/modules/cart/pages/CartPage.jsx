@@ -52,10 +52,10 @@ const CartPage = () => {
 
     console.debug('[Cart] sendOrder: initial customerId=', customerId, 'username=', username);
 
-    // Base URL para la API (usar VITE_BACKEND_URL cuando esté configurado)
+    // Base URL para la API 
     const apiBase = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 
-    // Si no tenemos customerId pero sí username, intentamos resolverlo contra API (rutas comunes)
+    
     const tryResolveCustomerId = async (usernameToResolve, token) => {
       if (!usernameToResolve) return null;
 
@@ -67,7 +67,7 @@ const CartPage = () => {
 
       for (const path of attempts) {
         try {
-          const fullUrl = apiBase ? path : path; // Ya se incluyó apiBase en la definición de attempts
+          const fullUrl = apiBase ? path : path; 
 
           console.debug('[Cart] resolving customerId via', fullUrl);
           const res = await fetch(fullUrl, {
@@ -133,7 +133,7 @@ const CartPage = () => {
       shippingAddress: shippingAddress,
       billingAddress: billingAddress,
       notes: notes || '',
-      // Asegúrate que los nombres de las propiedades coincidan con tu DTO de C#
+     
       orderItems: cart.map((item) => ({ productoId: item.id, quantity: item.quantity })),
     };
 
@@ -141,7 +141,7 @@ const CartPage = () => {
       const ordersUrl = apiBase ? `${apiBase}/api/orders` : '/api/orders';
       const headers = {
         'Content-Type': 'application/json',
-        // Usar el token del estado 'user' si existe, si no, es un string vacío (debería existir si isAuthenticated es true)
+       
         Authorization: isAuthenticated && user?.token ? `Bearer ${user.token}` : '',
       };
 
@@ -160,19 +160,16 @@ const CartPage = () => {
         const created = await response.json().catch(() => null);
 
         alert('¡Compra finalizada con éxito! Orden creada.');
-        // Lógica de limpieza:
-        // Asegúrate de definir las funciones de limpieza si las usas
-        // clear(); // Si existía un hook useCart con función clear
+       
         localStorage.removeItem('cart');
-        // La función setCart solo actualiza el estado local, el listener se encargará de esto en un caso real
-        // Por simplicidad para el demo:
+       
         clear();
 
         if (created?.id) {
-          // navigate(`/orders/${created.id}`); // Redirección
+         
         }
       } else {
-        // Manejo de errores detallado (lo que ya tenías)
+        
         let text = null;
 
         try {
@@ -192,7 +189,7 @@ const CartPage = () => {
         console.error('[Cart] order failed', { status: response.status, url: response.url, bodyText: text, bodyJson: parsed });
         const message = parsed?.Message || parsed?.message || text || 'Error desconocido';
 
-        // Caso común: backend devuelve que el CustomerId no existe
+      
         if (typeof message === 'string' && message.includes('Cliente con ID')) {
           const m = message.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
           const missingId = m ? m[0] : null;

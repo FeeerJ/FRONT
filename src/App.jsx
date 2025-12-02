@@ -10,61 +10,42 @@ import ListProductsPage from './modules/products/pages/ListProductsPage';
 import ClientProductPage from './modules/products/pages/ClientListProductPage';
 import CreateProductPage from './modules/products/pages/CreateProductPage';
 import CartPage from './modules/cart/pages/CartPage';
+import Header from './modules/shared/components/Header';
+import RootLayout from './modules/shared/components/RootLayout.jsx';
 
 function App() {
   const router = createBrowserRouter([
-    /* AREA CLIENTE */
-    {
-      path: '/',
-      element: <><Outlet /></>,
-      children: [
-        {
-          path: '/',
-          element: < ClientProductPage/>,
-        },
-        {
-          path: '/cart',
-          element: <CartPage/>,
-        },
-      ],
-    },
-    /* AREA USUARIO */
-    {
-      path: '/signup',
-      element: <RegisterPage />,
-    },
-    {
-      path: '/login',
-      element: <LoginPage />,
-    },
-    /* AREA ADMIN */
-    {
-      path: '/admin',
-      element: (
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      ),
-      children: [
-        {
-          path: '/admin/home',
-          element: <Home />,
-        },
-        {
-          path: '/admin/products',
-          element: <ListProductsPage />,
-        },
-        {
-          path: '/admin/products/create',
-          element: <CreateProductPage />,
-        },
-        {
-          path: '/admin/orders',
-          element: <ListOrdersPage />,
-        },
-      ],
-    },
-  ]);
+  {
+    path: '/',
+    element: <RootLayout />,   // ✔ Aca metemos el Header
+    children: [
+      { path: '/', element: <ClientProductPage /> },
+      { path: '/cart', element: <CartPage /> },
+    ],
+  },
+  {
+    path: '/signup',
+    element: <RegisterPage />,
+  },
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
+    path: '/admin',
+    element: (
+      <ProtectedRoute>
+        <Dashboard />
+      </ProtectedRoute>
+    ),
+    children: [
+      { path: '/admin/home', element: <Home /> },
+      { path: '/admin/products', element: <ListProductsPage /> },
+      { path: '/admin/products/create', element: <CreateProductPage /> },
+      { path: '/admin/orders', element: <ListOrdersPage /> },
+    ],
+  },
+]);
 
   return (
     <AuthProvider>

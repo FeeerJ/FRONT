@@ -44,7 +44,7 @@ const getOrders = async (filter, token) => {
 
   const data = await response.json();
 
-  // backend devuelve lista (porque no tienes paginación implementada aún en orders)
+  
   return {
     data: Array.isArray(data) ? data : data.items || [],
     totalCount: Array.isArray(data) ? data.length : data.total || 0,

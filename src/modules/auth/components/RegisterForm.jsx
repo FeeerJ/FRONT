@@ -7,13 +7,14 @@ import Input from '../../shared/components/Input';
 import Button from '../../shared/components/Button';
 import Card from '../../shared/components/Card';
 
-export default function RegisterForm() {
+export default function RegisterForm() { {/*Define la estructura (JSX) y la lógica general (estado, hooks) que se renderizará en la página de registro. */}
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
   const navigate = useNavigate();
   const [backendError, setBackendError] = useState(null);
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data) => { /*Se ejecuta cuando el usuario envia el formulario */
     try {
+      /*Se llama al ENDPOUNT registro */
       await instance.post('/api/authenticate/register', {
         username: data.username,
         email: data.email,
@@ -21,9 +22,10 @@ export default function RegisterForm() {
         name: data.name,
         phoneNumber: data.phoneNumber,
       });
-
+      /* Si el registro tiene exito se redirige al login */
       navigate('/login');
     } catch (error) {
+      /* Si el registro falla se muestra un mensaje de error */
       console.error('[Register] error:', error);
       setBackendError('No se pudo registrar. Verifique los datos.');
     }
