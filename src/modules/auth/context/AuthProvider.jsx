@@ -1,5 +1,4 @@
 import React, { createContext, useState } from 'react';
-import { login } from '../services/authService'; // Asumimos esta función de fetch
 
 // ====================================================================
 // UTILIDAD: Decodificación JWT (Conceptual)
@@ -68,7 +67,9 @@ function AuthProvider({ children }) {
 
       // Asegurarnos de que si existe customerId lo tengamos en localStorage también
       if (decoded.customerId) {
-        try { localStorage.setItem('customerId', decoded.customerId); } catch (e) {}
+        try { localStorage.setItem('customerId', decoded.customerId); } catch (e) {
+          console.error('[Auth] Error guardando customerId en localStorage:', e);
+        }
       }
 
       // También recuperar username previo si existe
@@ -89,12 +90,22 @@ function AuthProvider({ children }) {
 
   const singout = () => {
     // No limpiar todo el localStorage: solo token y customerId
-    try { localStorage.removeItem('token'); } catch (e) {}
-    try { localStorage.removeItem('customerId'); } catch (e) {}
-    try { localStorage.removeItem('username'); } catch (e) {}
-    try { localStorage.removeItem('cart'); } catch (e) {}
+    try { localStorage.removeItem('token'); } catch (e) {
+      console.error('[Auth] Error removing token from localStorage:', e);
+    }
+    try { localStorage.removeItem('customerId'); } catch (e) {
+      console.error('[Auth] Error removing customerId from localStorage:', e);
+    }
+    try { localStorage.removeItem('username'); } catch (e) {
+      console.error('[Auth] Error removing username from localStorage:', e);
+    }
+    try { localStorage.removeItem('cart'); } catch (e) {
+      console.error('[Auth] Error removing cart from localStorage:', e);
+    }
     // Notificar a otros componentes que el carrito cambió
-    try { window.dispatchEvent(new Event('cartUpdated')); } catch (e) {}
+    try { window.dispatchEvent(new Event('cartUpdated')); } catch (e) {
+      console.error('[Auth] Error dispatching cartUpdated event:', e);
+    }
     setUser(null);
   };
 

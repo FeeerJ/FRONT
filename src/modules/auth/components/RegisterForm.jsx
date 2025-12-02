@@ -24,6 +24,7 @@ export default function RegisterForm() {
 
       navigate('/login');
     } catch (error) {
+      console.error('[Register] error:', error);
       setBackendError('No se pudo registrar. Verifique los datos.');
     }
   };

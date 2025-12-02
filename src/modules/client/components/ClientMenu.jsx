@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ClientMenu = ({ isOpen, onClose, onLogout, onGoToCart }) => {
+const ClientMenu = ({ isOpen, onClose, onLogout }) => {
   return (
     <>
       {/* Fondo oscuro */}

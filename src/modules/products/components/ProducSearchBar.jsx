@@ -3,7 +3,7 @@ import React from 'react';
 // Asumo que tienes un componente Button.jsx en shared/components
 import Button from '../../shared/components/Button';
 
-const ProductSearchBar = ({ searchTerm, onSearchChange, onSearchSubmit, isLoading }) => {
+const ProductSearchBar = ({ searchTerm, onSearchChange, onSearchSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();

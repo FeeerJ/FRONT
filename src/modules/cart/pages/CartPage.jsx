@@ -107,7 +107,9 @@ const CartPage = () => {
           customerId = resolved;
           try {
             localStorage.setItem('customerId', customerId);
-          } catch (e) {}
+          } catch (e) {
+            console.error('[Cart] Error saving resolved customerId to localStorage:', e);
+          }
         }
       }
 
@@ -176,6 +178,7 @@ const CartPage = () => {
         try {
           text = await response.text();
         } catch (e) {
+          console.error('[Cart] Error saving resolved customerId to localStorage:', e);
           text = null;
         }
         let parsed = null;
@@ -183,6 +186,7 @@ const CartPage = () => {
         try {
           parsed = text ? JSON.parse(text) : null;
         } catch (e) {
+          console.error('[Cart] Error saving resolved customerId to localStorage:', e);
           parsed = null;
         }
         console.error('[Cart] order failed', { status: response.status, url: response.url, bodyText: text, bodyJson: parsed });

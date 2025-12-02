@@ -165,7 +165,7 @@ function ListProductsPage() {
 
   // --- Lógica de Acciones (Deshabilitar) ---
 
-  const handleDisableProduct = async (id) => {
+  const _handleDisableProduct = async (id) => {
     if (!window.confirm('¿Estás seguro de que quieres deshabilitar este producto?')) return;
 
     const token = user?.token;
@@ -183,6 +183,7 @@ function ListProductsPage() {
       // Refrescar la lista para reflejar el cambio de estado
       await fetchProducts();
     } catch (err) {
+      console.error('Error deshabilitando producto:', err);
       alert('Error al deshabilitar el producto.');
     } finally {
       setLoading(false);

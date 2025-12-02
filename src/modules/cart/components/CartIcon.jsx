@@ -18,6 +18,8 @@ const CartIcon = () => {
         // Usaremos la longitud del array (número de productos únicos diferentes)
         return cart.length;
       } catch (e) {
+        console.error('Error parsing cart from localStorage:', e);
+
         return 0;
       }
     }

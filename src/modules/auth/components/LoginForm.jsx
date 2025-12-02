@@ -12,7 +12,7 @@ export default function LoginForm({ onSuccess })  {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const navigate = useNavigate();
   const [backendError, setBackendError] = useState(null);
-  const { user, singin } = useAuth();
+  const { singin } = useAuth();
   const onSubmit = async (data) => {
     try {
       // ⬇️ 1. Llamamos al endpoint login

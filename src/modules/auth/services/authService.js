@@ -8,7 +8,9 @@ export const login = async (username, password) => {
     });
 
     // Loguear la respuesta completa para ayudar a diagnosticar customerId/token
-    try { console.debug('[Auth] login response:', response.data); } catch (e) {}
+    try { console.debug('[Auth] login response:', response.data); } catch (e) {
+      console.error('Error logging response data:', e);
+    }
 
     return { data: response.data, error: null };
 

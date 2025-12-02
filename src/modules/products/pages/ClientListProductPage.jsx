@@ -145,15 +145,23 @@ const ClientProductsPage = () => {
           <Button
             onClick={() => {
               if (isAuthenticated) {
-                try { singout(); } catch {}
-                try { localStorage.removeItem('customerId'); } catch {}
-                try { window.dispatchEvent(new Event('cartUpdated')); } catch {}
+                try { singout(); } catch (e) {
+                  console.error('[ClientProductsPage] Error during signout:', e);
+                }
+                try { localStorage.removeItem('customerId'); } catch (e) {
+                  console.error('[ClientProductsPage] Error removing customerId from localStorage:', e);
+                }
+                try { window.dispatchEvent(new Event('cartUpdated')); } catch (e) {
+                  console.error('[ClientProductsPage] Error dispatching cartUpdated event:', e);
+                }
                 navigate('/login');
               } else {
                 navigate('/login');
               }
             }}
-            className="hidden md:block ml-2 px-5 py-2 min-w-[140px] rounded-full bg-white border border-purple-600 text-purple-600 font-semibold hover:bg-purple-600 hover:text-white transition-shadow"
+            className="hidden md:block ml-2 px-5 py-2 min-w-[140px]
+                        rounded-full bg-white border border-purple-600 text-purple-600
+                         font-semibold hover:bg-purple-600 hover:text-white transition-shadow"
           >
             {isAuthenticated ? 'Cerrar Sesión' : 'Iniciar Sesión'}
           </Button>
@@ -212,9 +220,15 @@ const ClientProductsPage = () => {
                     navigate('/cart');
                 }}*/
         onLogout={() => {
-          try { singout(); } catch {}
-          try { localStorage.removeItem('customerId'); } catch {}
-          try { window.dispatchEvent(new Event('cartUpdated')); } catch {}
+          try { singout(); } catch (e) {
+            console.error('[ClientProductsPage] Error during signout:', e);
+          }
+          try { localStorage.removeItem('customerId'); } catch (e) {
+            console.error('[ClientProductsPage] Error removing customerId from localStorage:', e);
+          }
+          try { window.dispatchEvent(new Event('cartUpdated')); } catch (e) {
+            console.error('[ClientProductsPage] Error dispatching cartUpdated event:', e);
+          }
           setMenuOpen(false);
           navigate('/login');
         }}

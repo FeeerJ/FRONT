@@ -130,7 +130,9 @@ const ListOrdersPage = () => {
           const data = await res.json();
 
           newNames[id] = data.name || data.fullName || data.nombre || '';
-        } catch { }
+        } catch (e) {
+          console.error(`Error fetching customer ${id}:`, e);
+        }
       }),
     );
 
@@ -209,7 +211,7 @@ const ListOrdersPage = () => {
 
       {/* LISTA DE ÓRDENES */}
       <div className='mt-4 flex flex-col gap-2'>
-        {orders.length > 0 ? orders.map((order, idx) => (
+        {orders.length > 0 ? orders.map((order) => (
           <Card key={order.id} className="p-4 flex justify-between items-center">
             <div>
               <h2 className="text-lg font-semibold text-gray-800">

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   getCart,
-  saveCart,
   addToCart,
   removeFromCart,
   clearCart,
