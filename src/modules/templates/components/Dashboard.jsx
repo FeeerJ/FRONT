@@ -46,7 +46,7 @@ function Dashboard() {
           sm:col-span-2
         "
       >
-        <span>Mi Dashboard</span>
+        <span>Admin Dashboard</span>
         {renderLogoutButton()}
         <button
           className="bg-transparent border-none sm:hidden"
