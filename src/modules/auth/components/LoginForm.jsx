@@ -30,7 +30,7 @@ export default function LoginForm({ onSuccess })  { /*Se ejecuta cuando el usuar
       //  2. Guardamos todo lo necesario en localStorage, descomponiendo el token
       localStorage.setItem('token', loginData.token);
       localStorage.setItem('username', loginData.username);
-      localStorage.setItem('customerId', loginData.customerId);      // ⭐ IMPORTANTE
+      localStorage.setItem('customerId', loginData.customerId);      // IMPORTANTE
       localStorage.setItem('identityUserId', loginData.identityUserId);
       localStorage.setItem('roles', JSON.stringify(loginData.roles));
       singin(response.data);

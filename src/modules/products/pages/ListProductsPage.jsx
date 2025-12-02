@@ -139,7 +139,7 @@ function ListProductsPage() {
     if (isAuthenticated) {
       fetchProducts();
     } else {
-      setLoading(false); // Detenemos el loader si no hay token
+      setLoading(false); // Detenemos el load si no hay token
     }
   }, [isAuthenticated, status, pageSize, pageNumber]);
 

@@ -1,5 +1,3 @@
-// src/modules/products/components/CartIcon.jsx
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -36,13 +34,13 @@ const CartIcon = () => {
     // Escucha el evento 'storage' para detectar cambios en localStorage desde otras pestañas
     window.addEventListener('storage', updateCount);
 
-    // También escuchamos un evento personalizado que podrías disparar en handleAddToCart
+    // También escucha un evento personalizado que podrías disparar en handleAddToCart
     window.addEventListener('cartUpdated', updateCount);
 
     // Carga inicial
     updateCount();
 
-    // Limpieza: importante para evitar fugas de memoria
+    // Limpieza: vacia el carrito
     return () => {
       window.removeEventListener('storage', updateCount);
       window.removeEventListener('cartUpdated', updateCount);

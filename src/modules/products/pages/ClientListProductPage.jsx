@@ -1,4 +1,4 @@
-// src/modules/products/pages/ClientProductsPage.jsx
+
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../../shared/components/Button";
@@ -45,13 +45,12 @@ const ClientProductsPage = () => {
     window.dispatchEvent(new Event("cartUpdated"));
   };
 
-  // --- Fetch + filtro cliente + paginación cliente ---
+  //  Fetch + filtro cliente + paginación cliente
   useEffect(() => {
     const fetchProducts = async () => {
       setIsLoading(true);
       setError(null);
 
-      // Mandamos ambos esquemas por compatibilidad; si el back no filtra/pagina, lo hacemos nosotros
       const qs = new URLSearchParams();
       if (search) {
         qs.set("search", search);
@@ -76,19 +75,18 @@ const ClientProductsPage = () => {
           return [p.name, p.sku, p.description, p.category].some((v) => norm(v).includes(t));
         };
 
-        // Si el back devuelve objeto paginado -> data.items; igual filtramos por las dudas
         if (!Array.isArray(data) && (data.items || data.Items)) {
           let items = data.items ?? data.Items ?? [];
           items = items.filter((p) => p?.isActive !== false).filter((p) => matches(p, search));
           setTotalItems(items.length);
-          // Paginación cliente sobre el filtrado (por si el back no la aplica tras el filtro)
+         
           const start = (page - 1) * size;
           const pageSlice = items.slice(start, start + size);
           setProducts(pageSlice);
           return;
         }
 
-        // Back devuelve array completo -> filtramos y paginamos en cliente
+     
         const allActive = (Array.isArray(data) ? data : []).filter((p) => p?.isActive !== false);
         const filtered = allActive.filter((p) => matches(p, search));
         setTotalItems(filtered.length);
@@ -167,7 +165,7 @@ const ClientProductsPage = () => {
       </div>
 
       
-        {/* --- INFO + PAGINACIÓN + TAMAÑO (todo junto) --- */}
+        {/* --- INFO + PAGINACIÓN + TAMAÑO  --- */}
   <div className="mt-8 p-4 bg-white rounded-xl shadow-md
               flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
