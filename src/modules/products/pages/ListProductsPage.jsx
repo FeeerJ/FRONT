@@ -33,12 +33,13 @@ const getProducts = async (searchTerm, status, pageNumber, pageSize, token) => {
     throw new Error('401 Unauthorized');
   }
 
-  if (response.status === 204) {
+  if (response.status === 204 || response.status === 404) {
     return {
       data: [],
       totalCount: 0,
     };
   }
+
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

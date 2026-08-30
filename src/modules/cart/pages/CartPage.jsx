@@ -62,13 +62,16 @@ const CartPage = () => {
       return;
     }
 
-    // Construir payload acorde al DTO del backend (OrderModel.OrderRequest) con productId
+    // Construir payload acorde al DTO del backend (OrderRequest y OrderItemModel)
     const orderData = {
       customerId: customerId,
-      shippingAddress: shippingAddress,
-      billingAddress: billingAddress,
-      notes: notes || '',
-      orderItems: cart.map((item) => ({ productId: item.id, quantity: item.quantity })),
+      ShippingAddress: shippingAddress,
+      BillingAddress: billingAddress,
+      Notes: notes || '',
+      OrderItems: cart.map((item) => ({
+        productId: item.id,
+        Quantity: Number(item.quantity) || 1,
+      })),
     };
 
     try {
@@ -85,7 +88,14 @@ const CartPage = () => {
     } catch (error) {
       console.error('Error al crear la orden:', error);
       const resData = error.response?.data;
-      const message = resData?.message || resData?.Message || resData?.error || error.message || 'Error al procesar la compra';
+      
+      // Si el backend devuelve errores de validación (ValidationProblemDetails)
+      let validationMessage = '';
+      if (resData?.errors && typeof resData.errors === 'object') {
+        validationMessage = Object.values(resData.errors).flat().join(' | ');
+      }
+
+      const message = validationMessage || resData?.message || resData?.Message || resData?.error || error.message || 'Error al procesar la compra';
       alert(`Error al procesar la compra: ${message}`);
     }
   };

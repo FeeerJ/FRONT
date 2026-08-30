@@ -40,6 +40,9 @@ export const listOrders = async (statusOrParams = null, pageNumber = null, pageS
 
     return { data: response.data, error: null };
   } catch (error) {
+    if (error.response && (error.response.status === 404 || error.response.status === 204)) {
+      return { data: [], error: null };
+    }
     console.error('Error al listar órdenes:', error);
     return { data: null, error };
   }
