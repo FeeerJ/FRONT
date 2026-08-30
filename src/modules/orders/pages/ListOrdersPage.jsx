@@ -5,141 +5,76 @@ import Button from '../../shared/components/Button';
 import useAuth from '../../auth/hook/useAuth';
 import { useNavigate } from 'react-router-dom';
 
-// ESTADOS DE ÓRDEN (coinciden con backend)
+import { listOrders } from '../services/listServices';
+
+// ESTADOS DE ÓRDEN (coinciden con el enum exacto del backend)
 const orderStatus = {
   ALL: 'all',
-  PENDING: 'pending',
-  SHIPPED: 'shipped',
-  DELIVERED: 'delivered',
-  CANCELLED: 'cancelled',
-};
-
-/* ================================
-   Servicio: GET /api/orders/admin
-   Espera del backend:
-   { items, totalItems, pageNumber, pageSize, totalPages }
-==================================*/
-const getOrders = async (filter, token) => {
-  // Construir query string sin "undefined"
-  const qs = new URLSearchParams();
-  if (filter.status && filter.status !== 'all') qs.set('status', filter.status);
-  if (filter.search) qs.set('search', filter.search);
-  if (filter.customerId) qs.set('customerId', filter.customerId);
-  qs.set('pageNumber', String(filter.pageNumber));
-  qs.set('pageSize', String(filter.pageSize));
-
-  const url = `/api/orders/admin?${qs.toString()}`;
-
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (response.status === 401) throw new Error('401 Unauthorized');
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Error al obtener órdenes');
-  }
-
-  const data = await response.json();
-
-  // Normalizamos nombres por si cambian el casing
-  const items      = data.items ?? data.Items ?? (Array.isArray(data) ? data : []);
-  const totalItems = data.totalItems ?? data.TotalItems ?? (Array.isArray(data) ? items.length : 0);
-  const pageNumber = data.pageNumber ?? data.PageNumber ?? filter.pageNumber;
-  const pageSize   = data.pageSize ?? data.PageSize ?? filter.pageSize;
-  const totalPages = data.totalPages ?? data.TotalPages ?? Math.ceil(totalItems / pageSize);
-
-  return { items, totalItems, pageNumber, pageSize, totalPages };
+  PENDING: 'Pending',
+  PROCESSING: 'Processing',
+  SHIPPED: 'Shipped',
+  DELIVERED: 'Delivered',
+  CANCELLED: 'Cancelled',
 };
 
 const ListOrdersPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isAuthenticated = !!user?.token;
+  const token = user?.token || localStorage.getItem('token');
+  const isAuthenticated = Boolean(token);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState(orderStatus.ALL);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [total, setTotal] = useState(0); // totalItems
+  const [total, setTotal] = useState(0);
   const [orders, setOrders] = useState([]);
-  const [customerNames, setCustomerNames] = useState({});
   const [loading, setLoading] = useState(true);
-
-  // Cargar nombres de clientes por id (lookup)
-  const loadCustomerNames = useCallback(async (ordersList, token) => {
-    if (!ordersList || !ordersList.length) return;
-
-    const uniqueIds = [...new Set(ordersList.map(o => o.customerId))];
-    const toFetch = uniqueIds.filter(id => id && !customerNames[id]);
-    if (!toFetch.length) return;
-
-    const newNames = {};
-    await Promise.all(
-      toFetch.map(async (id) => {
-        try {
-          const res = await fetch(`/api/customers/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!res.ok) return;
-          const data = await res.json();
-          newNames[id] = data.name || data.fullName || data.nombre || '';
-        } catch (e) {
-          console.error(`Error fetching customer ${id}:`, e);
-        }
-      }),
-    );
-
-    if (Object.keys(newNames).length) {
-      setCustomerNames(prev => ({ ...prev, ...newNames }));
-    }
-  }, [customerNames]);
+  const [fetchError, setFetchError] = useState(null);
 
   // Fetch principal
   const fetchOrders = useCallback(async () => {
-    const token = user?.token;
-    if (!token) {
+    const activeToken = token;
+    if (!activeToken) {
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
+      setFetchError(null);
 
       const filter = {
         status: statusFilter,
         search: searchTerm,
-        customerId: null,
         pageNumber,
         pageSize,
       };
 
-      const {
-        items,
-        totalItems,
-        pageNumber: pnFromApi,
-        pageSize: psFromApi,
-      } = await getOrders(filter, token);
+      const { data, error } = await listOrders(filter);
 
-      setOrders(items);
-      setTotal(totalItems);
+      if (error) {
+        throw error;
+      }
 
-      // sincronizar con valores del backend (por si corrige rangos)
-      setPageNumber(pnFromApi);
-      setPageSize(psFromApi);
+      // Normalizar respuesta (Array List<OrderResponse> o estructura paginada)
+      const items = Array.isArray(data) ? data : (data?.items ?? data?.Items ?? data?.orders ?? []);
+      const totalItems = data?.total ?? data?.totalItems ?? (Array.isArray(data) ? data.length : items.length);
 
-      // lookup de nombres
-      await loadCustomerNames(items, token);
+      setOrders(Array.isArray(items) ? items : []);
+      setTotal(totalItems ?? 0);
     } catch (error) {
       console.error('Error al obtener órdenes:', error);
-      if (error.message.includes('401')) navigate('/login');
+      const status = error.response?.status;
+      if (status === 401 || status === 403) {
+        setFetchError('No tienes permisos de Administrador para ver las órdenes o tu sesión ha expirado.');
+      } else {
+        setFetchError(error.message || 'Error al obtener las órdenes.');
+      }
     } finally {
       setLoading(false);
     }
-  }, [user?.token, statusFilter, searchTerm, pageNumber, pageSize, navigate, loadCustomerNames]);
+  }, [token, statusFilter, searchTerm, pageNumber, pageSize]);
 
   // Efecto principal
   useEffect(() => {
@@ -163,7 +98,6 @@ const ListOrdersPage = () => {
     setPageSize(Number(e.target.value));
   };
 
-  // Si querés robustez visual, evitá 0 páginas
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
@@ -179,8 +113,9 @@ const ListOrdersPage = () => {
             <input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
               type="text"
-              placeholder="Buscar por texto"
+              placeholder="Buscar por texto..."
               className="text-sm border border-gray-300 p-2 rounded w-full"
             />
             <Button className="h-10 w-10 bg-gray-200 hover:bg-gray-300" onClick={handleSearch}>
@@ -194,11 +129,12 @@ const ListOrdersPage = () => {
               onChange={handleStatusChange}
               className="text-sm border border-gray-300 p-2 rounded-lg w-full"
             >
-              <option value={orderStatus.ALL}>Todos</option>
-              <option value={orderStatus.PENDING}>Pendientes</option>
-              <option value={orderStatus.SHIPPED}>Enviadas</option>
-              <option value={orderStatus.DELIVERED}>Entregadas</option>
-              <option value={orderStatus.CANCELLED}>Canceladas</option>
+              <option value={orderStatus.ALL}>Todos los estados</option>
+              <option value={orderStatus.PENDING}>Pending (Pendiente)</option>
+              <option value={orderStatus.PROCESSING}>Processing (En proceso)</option>
+              <option value={orderStatus.SHIPPED}>Shipped (Enviado)</option>
+              <option value={orderStatus.DELIVERED}>Delivered (Entregado)</option>
+              <option value={orderStatus.CANCELLED}>Cancelled (Cancelado)</option>
             </select>
           </div>
         </div>
@@ -214,10 +150,15 @@ const ListOrdersPage = () => {
                   Orden #{order.id}
                 </h2>
                 <p className="text-sm text-gray-600">
-                  Cliente: {customerNames[order.customerId] || order.customerId}
+                  Cliente ID: {order.customerId || 'N/A'} {order.customerName ? `(${order.customerName})` : ''}
                 </p>
+                {order.shippingAddress && (
+                  <p className="text-sm text-gray-600">
+                    Dirección de envío: {order.shippingAddress}
+                  </p>
+                )}
                 <p className="text-sm font-bold text-purple-700">
-                  Total: ${order.totalAmount}
+                  Total: ${order.totalAmount ?? order.total ?? 0}
                 </p>
               </div>
 
@@ -233,9 +174,11 @@ const ListOrdersPage = () => {
             </Card>
           ))
         ) : (
-          <p className="text-center p-4">
-            {loading ? 'Cargando...' : 'No se encontraron órdenes con el filtro actual.'}
-          </p>
+          <div className="text-center p-6 bg-white rounded-lg shadow">
+            <p className={`text-base ${fetchError ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
+              {loading ? 'Cargando...' : (fetchError || 'No se encontraron órdenes con el filtro actual.')}
+            </p>
+          </div>
         )}
       </div>
 
@@ -245,7 +188,7 @@ const ListOrdersPage = () => {
           <button
             disabled={pageNumber === 1 || loading}
             onClick={() => setPageNumber(pageNumber - 1)}
-            className="px-4 py-2 bg-gray-200 rounded"
+            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
           >
             Anterior
           </button>
@@ -255,7 +198,7 @@ const ListOrdersPage = () => {
           <button
             disabled={pageNumber === totalPages || loading}
             onClick={() => setPageNumber(pageNumber + 1)}
-            className="px-4 py-2 bg-gray-200 rounded"
+            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
           >
             Siguiente
           </button>
@@ -272,29 +215,28 @@ const ListOrdersPage = () => {
         </div>
       )}
 
-
       {/* NAVEGACION DE LA PAGINACION VERSION MOBILE */}
-        <div className="sm:hidden flex items-center justify-center gap-3 mt-6">
-          <button
-            onClick={() => setPageNumber(pageNumber - 1)}
-            disabled={pageNumber === 1 || loading}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full disabled:opacity-40 active:scale-95 transition"
-          >
-            ←
-          </button>
+      <div className="sm:hidden flex items-center justify-center gap-3 mt-6">
+        <button
+          onClick={() => setPageNumber(pageNumber - 1)}
+          disabled={pageNumber === 1 || loading}
+          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full disabled:opacity-40 active:scale-95 transition"
+        >
+          ←
+        </button>
 
-          <span className="px-4 py-2 bg-purple-100 text-purple-700 rounded-full font-semibold shadow-sm">
-            {pageNumber} / {totalPages}
-          </span>
+        <span className="px-4 py-2 bg-purple-100 text-purple-700 rounded-full font-semibold shadow-sm">
+          {pageNumber} / {totalPages}
+        </span>
 
-          <button
-            onClick={() => setPageNumber(pageNumber + 1)}
-            disabled={pageNumber === totalPages || loading}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full disabled:opacity-40 active:scale-95 transition"
-          >
-            →
-          </button>
-        </div>
+        <button
+          onClick={() => setPageNumber(pageNumber + 1)}
+          disabled={pageNumber === totalPages || loading}
+          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full disabled:opacity-40 active:scale-95 transition"
+        >
+          →
+        </button>
+      </div>
     </div>
   );
 };

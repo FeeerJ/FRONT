@@ -29,29 +29,19 @@ function CreateProductForm() {
 
   const onValid = async (formData) => {
     try {
+      setErrorBackendMessage('');
       await createProduct(formData);
 
       navigate('/admin/products');
     } catch (error) {
-      console.log('ERROR COMPLETO:', error);
+      console.error('ERROR COMPLETO:', error);
 
       const data = error.response?.data;
-      const backMsg = data?.Message;
-      const backCode = data?.code;
+      const errorMsg = data?.error || data?.message || data?.Message || frontendErrorMessage[data?.code];
 
-      console.log('BACK MSG:', backMsg);
-      console.log('BACK CODE:', backCode);
-
-      const mappedMsg = frontendErrorMessage[backCode];
-
-      if (mappedMsg) {
-        setErrorBackendMessage(mappedMsg);
-      }
-      else if (backMsg) {
-        alert( backMsg);
-        // setErrorBackendMessage(backMsg);
-      }
-      else {
+      if (errorMsg) {
+        setErrorBackendMessage(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
+      } else {
         setErrorBackendMessage('Error desconocido al crear el producto');
       }
     }
@@ -99,11 +89,10 @@ function CreateProductForm() {
           label='Precio'
           error={errors.price?.message}
           type='number'
+          step='any'
           {...register('price', {
-            min: {
-              value: 0,
-              message: 'No puede tener un precio negativo',
-            },
+            required: 'El precio es requerido',
+            validate: (value) => Number(value) > 0 || 'El precio debe ser mayor a 0',
           })}
         />
         <Input

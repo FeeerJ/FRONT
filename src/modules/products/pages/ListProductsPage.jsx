@@ -5,34 +5,20 @@ import Card from '../../shared/components/Card';
 
 
 
-const useAuth = () => {
-  const [user, setUser] = useState({ token: localStorage.getItem('token') || null });
-
-  
-  useEffect(() => {
-    
-    const token = localStorage.getItem('token');
-
-    if (token) {
-      
-      setUser({ token, role: 'Admin' });
-    }
-  }, []);
-
-  return { user };
-};
-
+import useAuth from '../../auth/hook/useAuth';
 
 const getProducts = async (searchTerm, status, pageNumber, pageSize, token) => {
+  const params = new URLSearchParams();
+  if (searchTerm && searchTerm.trim() !== '') {
+    params.append('search', searchTerm.trim());
+  }
+  if (status && status !== 'all' && status.trim() !== '') {
+    params.append('status', status.trim());
+  }
+  params.append('pageNumber', String(pageNumber));
+  params.append('pageSize', String(pageSize));
 
-  const params = new URLSearchParams({
-    search: searchTerm || '',
-    status: status === 'all' ? '' : status,
-    pageNumber,
-    pageSize,
-  }).toString();
-
-  const url = `/api/products/admin?${params}`;
+  const url = `/api/products?${params.toString()}`;
 
   console.debug('[Products] GET', url);
 
@@ -47,32 +33,38 @@ const getProducts = async (searchTerm, status, pageNumber, pageSize, token) => {
     throw new Error('401 Unauthorized');
   }
 
+  if (response.status === 204) {
+    return {
+      data: [],
+      totalCount: 0,
+    };
+  }
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
 
     throw new Error(errorData.message || 'Error obteniendo productos');
   }
 
- 
   const data = await response.json();
 
   return {
-    data: data.productItems,
-    totalCount: data.total,
+    data: data?.productsItems ?? data?.ProductsItems ?? data?.productItems ?? (Array.isArray(data) ? data : []),
+    totalCount: data?.total ?? data?.Total ?? (Array.isArray(data) ? data.length : 0),
   };
 };
 
-// **Mock de disableProduct:** Simula la petición PATCH
 const disableProduct = async (id, token) => {
   const response = await fetch(`/api/products/${id}`, {
     method: 'PATCH', 
     headers: {
       'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
     },
   });
 
   if (!response.ok && response.status !== 204) {
-    throw new Error(`Error al deshabilitar. Status: ${response.status}`);
+    throw new Error(`Error al modificar producto. Status: ${response.status}`);
   }
 
   return { success: true };
@@ -90,8 +82,9 @@ const productStatus = {
 
 function ListProductsPage() {
   const navigate = useNavigate();
-  const { user } = useAuth(); // Obtener el objeto user
-  const isAuthenticated = !!user?.token;
+  const { user } = useAuth(); // Obtener el objeto user desde AuthContext
+  const token = user?.token || localStorage.getItem('token');
+  const isAuthenticated = Boolean(token);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [status, setStatus] = useState(productStatus.ALL);
@@ -104,37 +97,26 @@ function ListProductsPage() {
   // --- Lógica de FETCH y Carga ---
 
   const fetchProducts = async () => {
-    const token = user?.token;
+    const activeToken = token;
 
-    if (!token) {
+    if (!activeToken) {
       setLoading(false);
-
-      
       return;
     }
 
     try {
       setLoading(true);
-      const { data, totalCount } = await getProducts(searchTerm, status, pageNumber, pageSize, token);
+      const { data, totalCount } = await getProducts(searchTerm, status, pageNumber, pageSize, activeToken);
 
-      
-      setProducts(data);
-      setTotal(totalCount);
+      setProducts(Array.isArray(data) ? data : []);
+      setTotal(totalCount ?? 0);
     } catch (error) {
-      
-      console.error('Error fetching products. Código:', error.message);
-
-     
-      if (error.message.includes('401')) {
-        navigate('/login');
-      }
-
+      console.error('Error fetching products:', error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  
   useEffect(() => {
     if (isAuthenticated) {
       fetchProducts();
@@ -143,28 +125,28 @@ function ListProductsPage() {
     }
   }, [isAuthenticated, status, pageSize, pageNumber]);
 
-  // --- Lógica de Acciones (Deshabilitar) ---
+  // --- Lógica de Acciones (Deshabilitar/Habilitar) ---
 
-  const _handleDisableProduct = async (id) => {
-    if (!window.confirm('¿Estás seguro de que quieres deshabilitar este producto?')) return;
+  const _handleDisableProduct = async (id, isActive = true) => {
+    const action = isActive ? 'deshabilitar' : 'habilitar';
+    if (!window.confirm(`¿Estás seguro de que quieres ${action} este producto?`)) return;
 
-    const token = user?.token;
+    const activeToken = token;
 
-    if (!token) {
+    if (!activeToken) {
       alert('Sesión expirada. Redirigiendo a login...');
       navigate('/login');
-
       return;
     }
 
     try {
       setLoading(true);
-      await disableProduct(id, token);
+      await disableProduct(id, activeToken);
       // Refrescar la lista para reflejar el cambio de estado
       await fetchProducts();
     } catch (err) {
-      console.error('Error deshabilitando producto:', err);
-      alert('Error al deshabilitar el producto.');
+      console.error(`Error al ${action} producto:`, err);
+      alert(`Error al ${action} el producto.`);
     } finally {
       setLoading(false);
     }
@@ -257,12 +239,19 @@ function ListProductsPage() {
                 </div>
 
                 <div className='flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-2 sm:mt-0'>
-                  {/* Botón único 'Ver' para ver detalles del producto */}
+                  {/* Botón 'Ver' para ver detalles del producto */}
                   <Button
                     onClick={() => navigate(`/admin/products/view/${product.id}`)}
                     className='bg-indigo-600 hover:bg-indigo-700 text-white p-2 text-sm'
                   >
-                        Ver
+                    Ver
+                  </Button>
+                  {/* Botón para habilitar/deshabilitar producto vía PATCH */}
+                  <Button
+                    onClick={() => _handleDisableProduct(product.id, product.isActive)}
+                    className={`p-2 text-sm text-white ${product.isActive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+                  >
+                    {product.isActive ? 'Desactivar' : 'Activar'}
                   </Button>
                 </div>
               </div>
