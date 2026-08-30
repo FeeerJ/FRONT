@@ -47,3 +47,16 @@ export const listOrders = async (statusOrParams = null, pageNumber = null, pageS
     return { data: null, error };
   }
 };
+
+export const getOrderById = async (id) => {
+  try {
+    const response = await instance.get(`/api/orders/${id}`);
+    return { data: response.data, error: null };
+  } catch (error) {
+    if (error.response && (error.response.status === 404 || error.response.status === 400 || error.response.status === 204)) {
+      return { data: null, error: null };
+    }
+    console.error('Error al obtener orden por ID:', error);
+    return { data: null, error };
+  }
+};

@@ -5,7 +5,7 @@ import Button from '../../shared/components/Button';
 import useAuth from '../../auth/hook/useAuth';
 import { useNavigate } from 'react-router-dom';
 
-import { listOrders } from '../services/listServices';
+import { listOrders, getOrderById } from '../services/listServices';
 
 // ESTADOS DE ÓRDEN (coinciden con el enum exacto del backend)
 const orderStatus = {
@@ -33,7 +33,7 @@ const ListOrdersPage = () => {
   const [fetchError, setFetchError] = useState(null);
 
   // Fetch principal
-  const fetchOrders = useCallback(async () => {
+  const fetchOrders = useCallback(async (customSearch = searchTerm) => {
     const activeToken = token;
     if (!activeToken) {
       setLoading(false);
@@ -44,9 +44,72 @@ const ListOrdersPage = () => {
       setLoading(true);
       setFetchError(null);
 
+      const trimmedSearch = (customSearch ?? '').trim();
+
+      // Si se ingresó un término de búsqueda (ej. ID de orden)
+      if (trimmedSearch !== '') {
+        const isGuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i.test(trimmedSearch);
+
+        if (isGuid) {
+          const { data, error } = await getOrderById(trimmedSearch);
+
+          if (error) {
+            throw error;
+          }
+
+          if (data) {
+            // Verificar si aplica filtro de estado
+            if (statusFilter !== orderStatus.ALL && data.status?.toLowerCase() !== statusFilter.toLowerCase()) {
+              setOrders([]);
+              setTotal(0);
+            } else {
+              setOrders([data]);
+              setTotal(1);
+            }
+          } else {
+            setOrders([]);
+            setTotal(0);
+          }
+          return;
+        } else {
+          // Si no es un GUID completo, intentamos buscar por ID o filtramos en memoria
+          const { data, error } = await getOrderById(trimmedSearch);
+          if (!error && data) {
+            if (statusFilter !== orderStatus.ALL && data.status?.toLowerCase() !== statusFilter.toLowerCase()) {
+              setOrders([]);
+              setTotal(0);
+            } else {
+              setOrders([data]);
+              setTotal(1);
+            }
+            return;
+          }
+
+          // Filtro sobre lista
+          const { data: listData, error: listError } = await listOrders({
+            status: statusFilter,
+            pageNumber: 1,
+            pageSize: 100,
+          });
+
+          if (listError) throw listError;
+
+          const items = Array.isArray(listData) ? listData : (listData?.items ?? listData?.Items ?? listData?.orders ?? []);
+          const filtered = items.filter(o =>
+            (o.id && o.id.toLowerCase().includes(trimmedSearch.toLowerCase())) ||
+            (o.customerId && o.customerId.toLowerCase().includes(trimmedSearch.toLowerCase())) ||
+            (o.shippingAddress && o.shippingAddress.toLowerCase().includes(trimmedSearch.toLowerCase()))
+          );
+
+          setOrders(filtered);
+          setTotal(filtered.length);
+          return;
+        }
+      }
+
+      // Si no hay búsqueda, listar normalmente paginado
       const filter = {
         status: statusFilter,
-        search: searchTerm,
         pageNumber,
         pageSize,
       };
@@ -80,12 +143,21 @@ const ListOrdersPage = () => {
   useEffect(() => {
     if (isAuthenticated) fetchOrders();
     else setLoading(false);
-  }, [isAuthenticated, statusFilter, searchTerm, pageNumber, pageSize, fetchOrders]);
+  }, [isAuthenticated, statusFilter, pageNumber, pageSize, fetchOrders]);
 
   // Handlers
   const handleSearch = () => {
     setPageNumber(1);
-    fetchOrders();
+    fetchOrders(searchTerm);
+  };
+
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setSearchTerm(val);
+    if (val.trim() === '') {
+      setPageNumber(1);
+      fetchOrders('');
+    }
   };
 
   const handleStatusChange = (e) => {
@@ -112,13 +184,13 @@ const ListOrdersPage = () => {
           <div className="flex items-center gap-3 w-full sm:w-2/3">
             <input
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
               type="text"
-              placeholder="Buscar por texto..."
+              placeholder="Buscar por ID de orden..."
               className="text-sm border border-gray-300 p-2 rounded w-full"
             />
-            <Button className="h-10 w-10 bg-gray-200 hover:bg-gray-300" onClick={handleSearch}>
+            <Button className="h-10 w-10 bg-gray-200 hover:bg-gray-300" onClick={handleSearch} disabled={loading}>
               🔍
             </Button>
           </div>
