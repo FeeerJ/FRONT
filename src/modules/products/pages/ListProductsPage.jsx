@@ -18,7 +18,7 @@ const getProducts = async (searchTerm, status, pageNumber, pageSize, token) => {
   params.append('pageNumber', String(pageNumber));
   params.append('pageSize', String(pageSize));
 
-  const url = `/api/products?${params.toString()}`;
+  const url = `/api/products/admin?${params.toString()}`;
 
   console.debug('[Products] GET', url);
 
@@ -56,7 +56,7 @@ const getProducts = async (searchTerm, status, pageNumber, pageSize, token) => {
 
 const disableProduct = async (id, token) => {
   const response = await fetch(`/api/products/${id}`, {
-    method: 'PATCH', 
+    method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -219,7 +219,7 @@ function ListProductsPage() {
                 <option value={productStatus.DISABLED}>Inhabilitados</option>
               </select>
               <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700'>
-                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
               </div>
             </div>
           </div>
@@ -234,7 +234,7 @@ function ListProductsPage() {
                   <h1 className='text-lg font-semibold text-gray-800'>{product.sku} - {product.name}</h1>
                   <p className='text-sm text-gray-600'>Precio: ${product.currentUnitPrice} | Stock: {product.stockQuantity}</p>
                   <p className={`text-sm font-semibold ${product.isActive ? 'text-green-600' : 'text-red-600'}`}>
-                            Estado: {product.isActive ? 'Activado' : 'Desactivado'}
+                    Estado: {product.isActive ? 'Activado' : 'Desactivado'}
                   </p>
                 </div>
 
@@ -268,7 +268,7 @@ function ListProductsPage() {
                 onClick={() => setPageNumber(pageNumber - 1)}
                 className='px-4 py-2 bg-gray-200 rounded disabled:bg-gray-100 disabled:text-gray-400 hover:bg-gray-300 transition'
               >
-                  Anterior
+                Anterior
               </button>
               <span className='font-semibold'>{pageNumber} / {totalPages}</span>
               <button
@@ -276,7 +276,7 @@ function ListProductsPage() {
                 onClick={() => setPageNumber(pageNumber + 1)}
                 className='px-4 py-2 bg-gray-200 rounded disabled:bg-gray-100 disabled:text-gray-400 hover:bg-gray-300 transition'
               >
-                  Siguiente
+                Siguiente
               </button>
 
               <select
@@ -318,7 +318,7 @@ function ListProductsPage() {
                   hover:bg-purple-700 active:scale-95
                   fixed bottom-6 right-6 z-[9500] w-14 h-14 h-14 sm:hidden ... "
           >
-                +
+            +
           </button>
         )}
 
