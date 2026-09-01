@@ -5,11 +5,13 @@ import LoginForm from '../../auth/components/LoginForm';
 import useAuth from '../../auth/hook/useAuth';
 import useCart from '../../cart/hooks/useCart';
 
+import { instance } from '../../shared/api/axiosInstance';
+
 const Modal = ({ children, onClose }) => (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
     <div className="bg-white p-6 rounded-lg max-w-md w-full shadow-2xl relative">
       <button onClick={onClose} className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-lg font-bold">
-                &times;
+        &times;
       </button>
       {children}
     </div>
@@ -42,167 +44,59 @@ const CartPage = () => {
   const sendOrder = async () => {
     if (!cart.length) {
       alert('Tu carrito está vacío.');
-
       return;
     }
 
-    // Obtener customerId desde user o localStorage (fallback)
-    let customerId = user?.customerId || localStorage.getItem('customerId');
-    const username = user?.username || localStorage.getItem('username');
-
-    console.debug('[Cart] sendOrder: initial customerId=', customerId, 'username=', username);
-
-    // Base URL para la API 
-    const apiBase = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
-
-    
-    const tryResolveCustomerId = async (usernameToResolve, token) => {
-      if (!usernameToResolve) return null;
-
-      const attempts = [
-        `${apiBase}/api/customers/username/${encodeURIComponent(usernameToResolve)}`,
-        `${apiBase}/api/customers/by-username/${encodeURIComponent(usernameToResolve)}`,
-        `${apiBase}/api/customers?username=${encodeURIComponent(usernameToResolve)}`,
-      ];
-
-      for (const path of attempts) {
-        try {
-          const fullUrl = apiBase ? path : path; 
-
-          console.debug('[Cart] resolving customerId via', fullUrl);
-          const res = await fetch(fullUrl, {
-            headers: { Authorization: token ? `Bearer ${token}` : '' },
-          });
-
-          if (!res.ok) continue;
-
-          const data = await res.json();
-
-          if (data) {
-            if (data.id) return data.id;
-
-            if (data.customerId) return data.customerId;
-
-            if (Array.isArray(data) && data.length && (data[0].id || data[0].customerId)) {
-              return data[0].id || data[0].customerId;
-            }
-          }
-        } catch (e) {
-          console.debug('[Cart] resolve attempt failed', e);
-          continue;
-        }
-      }
-
-      return null;
-    };
+    // Obtener customerId directamente desde el usuario autenticado
+    const customerId = user?.customerId || localStorage.getItem('customerId');
 
     if (!customerId) {
-      if (username) {
-        const token = user?.token || localStorage.getItem('token');
-        const resolved = await tryResolveCustomerId(username, token);
-
-        console.debug('[Cart] resolved customerId=', resolved);
-
-        if (resolved) {
-          customerId = resolved;
-          try {
-            localStorage.setItem('customerId', customerId);
-          } catch (e) {
-            console.error('[Cart] Error saving resolved customerId to localStorage:', e);
-          }
-        }
-      }
-
-      if (!customerId) {
-        alert('Debes iniciar sesión con un usuario que tenga customerId válido en el sistema o configurar el backend para devolverlo.');
-
-        return;
-      }
+      alert('Debes iniciar sesión para realizar la compra.');
+      setIsModalOpen(true);
+      return;
     }
 
     // Validaciones básicas de direcciones
     if (!shippingAddress || !billingAddress) {
       alert('Por favor completa dirección de envío y de facturación.');
-
       return;
     }
 
-    // Construir payload acorde al DTO del backend (OrderModel.OrderRequest)
+    // Construir payload acorde al DTO del backend (OrderRequest y OrderItemModel)
     const orderData = {
       customerId: customerId,
-      shippingAddress: shippingAddress,
-      billingAddress: billingAddress,
-      notes: notes || '',
-     
-      orderItems: cart.map((item) => ({ productoId: item.id, quantity: item.quantity })),
+      ShippingAddress: shippingAddress,
+      BillingAddress: billingAddress,
+      Notes: notes || '',
+      OrderItems: cart.map((item) => ({
+        productId: item.id,
+        Quantity: Number(item.quantity) || 1,
+      })),
     };
 
     try {
-      const ordersUrl = apiBase ? `${apiBase}/api/orders` : '/api/orders';
-      const headers = {
-        'Content-Type': 'application/json',
-       
-        Authorization: isAuthenticated && user?.token ? `Bearer ${user.token}` : '',
-      };
+      // Realizar la llamada mediante axiosInstance (ruta relativa con proxy y auth header)
+      await instance.post('/api/orders', orderData);
 
-      console.debug('[Cart] sending order to', ordersUrl, orderData);
-      console.debug('[Cart] request headers', headers);
+      alert('¡Compra finalizada con éxito! Orden creada.');
 
-      const response = await fetch(ordersUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(orderData),
-      });
+      localStorage.removeItem('cart');
+      clear();
+      window.dispatchEvent(new Event('cartUpdated'));
 
-      console.debug('[Cart] order response status', response.status, 'url', response.url);
-
-      if (response.status === 201) {
-        const created = await response.json().catch(() => null);
-
-        alert('¡Compra finalizada con éxito! Orden creada.');
-       
-        localStorage.removeItem('cart');
-       
-        clear();
-
-        if (created?.id) {
-         
-        }
-      } else {
-        
-        let text = null;
-
-        try {
-          text = await response.text();
-        } catch (e) {
-          console.error('[Cart] Error saving resolved customerId to localStorage:', e);
-          text = null;
-        }
-        let parsed = null;
-
-        try {
-          parsed = text ? JSON.parse(text) : null;
-        } catch (e) {
-          console.error('[Cart] Error saving resolved customerId to localStorage:', e);
-          parsed = null;
-        }
-        console.error('[Cart] order failed', { status: response.status, url: response.url, bodyText: text, bodyJson: parsed });
-        const message = parsed?.Message || parsed?.message || text || 'Error desconocido';
-
-      
-        if (typeof message === 'string' && message.includes('Cliente con ID')) {
-          const m = message.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
-          const missingId = m ? m[0] : null;
-
-          console.warn('[Cart] backend reports missing customer:', missingId);
-          alert(`No se pudo crear la orden porque el cliente asociado no existe en el servidor.\n${message}\n\nSolución recomendada: crea el registro de cliente correspondiente en el backend (Customer) o ajusta el servicio de login/registro para crear el Customer automáticamente. CustomerId: ${missingId || 'desconocido'}`);
-        } else {
-          alert(`Error al procesar la compra: ${message}`);
-        }
-      }
+      navigate('/');
     } catch (error) {
-      console.error('Error en la solicitud de orden (network):', error);
-      alert('Error de conexión con el servidor de órdenes. Revisa la consola para más detalles.');
+      console.error('Error al crear la orden:', error);
+      const resData = error.response?.data;
+      
+      // Si el backend devuelve errores de validación (ValidationProblemDetails)
+      let validationMessage = '';
+      if (resData?.errors && typeof resData.errors === 'object') {
+        validationMessage = Object.values(resData.errors).flat().join(' | ');
+      }
+
+      const message = validationMessage || resData?.message || resData?.Message || resData?.error || error.message || 'Error al procesar la compra';
+      alert(`Error al procesar la compra: ${message}`);
     }
   };
 
@@ -218,7 +112,7 @@ const CartPage = () => {
                         rounded-full bg-white border border-purple-600 text-purple-600
                          font-semibold hover:bg-purple-600 hover:text-white transition-shadow"
         >
-                    Volver
+          Volver
         </button>
       </div>
 
@@ -245,13 +139,13 @@ const CartPage = () => {
 
                     <div className="text-right">
                       <span className="font-extrabold text-xl text-purple-700 block">
-                                            ${(item.price * item.quantity).toFixed(2)}
+                        ${(item.price * item.quantity).toFixed(2)}
                       </span>
                       <button
                         className="text-red-500 hover:text-red-700 text-sm mt-1"
                         onClick={() => removeItem(item.id)}
                       >
-                                            Eliminar
+                        Eliminar
                       </button>
                     </div>
                   </div>
@@ -293,7 +187,7 @@ const CartPage = () => {
 
               <Button className="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-full"
                 onClick={handleCheckout}>
-                            Finalizar Compra
+                Finalizar Compra
               </Button>
             </div>
 
@@ -316,13 +210,13 @@ const CartPage = () => {
 
                     <div className="text-right">
                       <span className="font-extrabold text-lg text-purple-700 block">
-                                            ${(item.price * item.quantity).toFixed(2)}
+                        ${(item.price * item.quantity).toFixed(2)}
                       </span>
                       <button
                         className="text-red-500 hover:text-red-700 text-sm"
                         onClick={() => removeItem(item.id)}
                       >
-                                            Eliminar
+                        Eliminar
                       </button>
                     </div>
                   </div>
@@ -376,7 +270,7 @@ const CartPage = () => {
 
               <Button className="w-full mt-3 bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-full"
                 onClick={handleCheckout}>
-                            Finalizar Compra
+                Finalizar Compra
               </Button>
             </div>
 

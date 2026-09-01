@@ -1,18 +1,21 @@
 import React, { createContext, useState } from 'react';
 
-// Función para decodificar el token y extraer claims útiles (rol y customerId) Descompone el Token en tres partes, 
+// Función para decodificar el token y extraer claims útiles (rol, customerId, username)
 const decodeToken = (token) => {
   try {
     const payloadBase64 = token.split('.')[1];
     const payload = JSON.parse(atob(payloadBase64));
 
-    // el rol puede venir en varias claims
+    // El rol puede venir en varias claims
     const roleClaim = payload.role || payload['role'] || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+
+    // Extraer username / email tolerando que sub o emailaddress sea un email o nombre
+    const usernameClaim = payload.unique_name || payload.name || payload.email || payload.sub || payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'];
 
     // Busca customerId en varias posibles claims comunes
     const idCandidates = [
+      'customerId', 'id', 'userId', 'user_id',
       'nameidentifier', 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier',
-      'sub', 'id', 'userId', 'user_id', 'customerId',
     ];
     let customerId = null;
 
@@ -39,18 +42,19 @@ const decodeToken = (token) => {
       token,
       role: Array.isArray(roleClaim) ? roleClaim[0] : roleClaim,
       customerId,
+      username: usernameClaim || null,
     };
   } catch (e) {
     console.error('Error decodificando token:', e);
 
-    return { token, role: null, customerId: null };
+    return { token, role: null, customerId: null, username: null };
   }
 };
 
 const AuthContext = createContext();
 
 function AuthProvider({ children }) {
-  // CAMBIO 1: Estado para el objeto de usuario (token y role)
+  // Estado para el objeto de usuario (token, role, customerId, username)
   const [user, setUser] = useState(() => {
     const token = localStorage.getItem('token');
     /* Si existe un token */
@@ -60,18 +64,34 @@ function AuthProvider({ children }) {
 
       console.debug('[Auth] init: decoded payload', decoded);
 
-      // Asegurarnos de que si existe customerId lo tengamos en localStorage también
-      if (decoded.customerId) {
+      // Recuperar customerId desde localStorage o del token decodificado
+      const storedCustomerId = localStorage.getItem('customerId');
+      if (storedCustomerId) {
+        decoded.customerId = storedCustomerId;
+      } else if (decoded.customerId) {
         try { localStorage.setItem('customerId', decoded.customerId); } catch (e) {
           console.error('[Auth] Error guardando customerId en localStorage:', e);
         }
       }
 
-      // También recuperar username previo si existe
+      // Recuperar username desde localStorage o del token decodificado
       const storedUsername = localStorage.getItem('username');
-
       if (storedUsername) {
         decoded.username = storedUsername;
+      } else if (decoded.username) {
+        try { localStorage.setItem('username', decoded.username); } catch (e) {
+          console.error('[Auth] Error guardando username en localStorage:', e);
+        }
+      }
+
+      // Recuperar role desde localStorage o del token decodificado
+      const storedRole = localStorage.getItem('role');
+      if (storedRole) {
+        decoded.role = storedRole;
+      } else if (decoded.role) {
+        try { localStorage.setItem('role', decoded.role); } catch (e) {
+          console.error('[Auth] Error guardando role en localStorage:', e);
+        }
       }
 
       return decoded;
@@ -84,7 +104,7 @@ function AuthProvider({ children }) {
   const isAuthenticated = Boolean(user);
 
   const singout = () => {
-    // No limpiar todo el localStorage: solo token y customerId
+    // Limpiar localStorage: token, customerId, username, role y cart
     try { localStorage.removeItem('token'); } catch (e) {
       console.error('[Auth] Error removing token from localStorage:', e);
     }
@@ -93,6 +113,9 @@ function AuthProvider({ children }) {
     }
     try { localStorage.removeItem('username'); } catch (e) {
       console.error('[Auth] Error removing username from localStorage:', e);
+    }
+    try { localStorage.removeItem('role'); } catch (e) {
+      console.error('[Auth] Error removing role from localStorage:', e);
     }
     try { localStorage.removeItem('cart'); } catch (e) {
       console.error('[Auth] Error removing cart from localStorage:', e);
@@ -105,17 +128,19 @@ function AuthProvider({ children }) {
   };
 
   const singin = (loginData) => {
-    const { token, username, customerId } = loginData;
+    const { token, username, customerId, role } = loginData;
 
     const newUser = {
       token,
       username,
       customerId,
+      role,
     };
 
     localStorage.setItem('token', token);
-    localStorage.setItem('username', username);
-    localStorage.setItem('customerId', customerId);
+    if (username) localStorage.setItem('username', username);
+    if (customerId) localStorage.setItem('customerId', customerId);
+    if (role) localStorage.setItem('role', role);
 
     setUser(newUser);
   };

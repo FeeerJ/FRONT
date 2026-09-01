@@ -1,9 +1,9 @@
 import { instance } from '../../shared/api/axiosInstance';
 
-export const login = async (username, password) => { /* Funcion encargada de acceder al ENDPOINT de autenticacion, enviandole el usuario y la contraseña */
+export const login = async (email, password) => { /* Funcion encargada de acceder al ENDPOINT de autenticacion, enviandole el email y la contraseña */
   try {
     const response = await instance.post('/api/authenticate/login', {
-      username: username,
+      email: email,
       password: password,
     });
 

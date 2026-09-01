@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Card from '../../shared/components/Card';
+import { instance } from '../../shared/api/axiosInstance';
 
 function Home() {
 
@@ -13,18 +14,43 @@ function Home() {
   useEffect(() => {
     const fetchSummary = async () => {
       try {
-        const response = await fetch('/api/dashboard/summary');
+        setLoading(true);
 
-        if (!response.ok) throw new Error('Error al cargar el resumen');
+        const [productsRes, ordersRes] = await Promise.allSettled([
+          instance.get('/api/products'),
+          instance.get('/api/orders'),
+        ]);
 
-        const data = await response.json();
+        let totalProducts = 0;
+        let totalOrders = 0;
+
+        if (productsRes.status === 'fulfilled' && productsRes.value?.data) {
+          const data = productsRes.value.data;
+          totalProducts =
+            data?.total ??
+            data?.totalCount ??
+            data?.Total ??
+            data?.productsItems?.length ??
+            (Array.isArray(data) ? data.length : 0);
+        }
+
+        if (ordersRes.status === 'fulfilled' && ordersRes.value?.data) {
+          const data = ordersRes.value.data;
+          totalOrders =
+            data?.total ??
+            data?.totalItems ??
+            data?.Total ??
+            data?.items?.length ??
+            data?.orders?.length ??
+            (Array.isArray(data) ? data.length : 0);
+        }
 
         setStats({
-          totalProducts: data.totalProducts,
-          totalOrders: data.totalOrders,
+          totalProducts,
+          totalOrders,
         });
       } catch (err) {
-        console.error('Dashboard error:', err);
+        console.error('Dashboard stats error:', err);
       } finally {
         setLoading(false);
       }

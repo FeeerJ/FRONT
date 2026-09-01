@@ -7,8 +7,8 @@ export const createProduct = async (formData) => {
       internalCode: formData.cui,
       name: formData.name,
       description: formData.description,
-      currentUnitPrice: formData.price,
-      stockQuantity: formData.stock,
+      currentUnitPrice: Number(formData.price),
+      stockQuantity: Number(formData.stock),
     });
 
     return response.data;

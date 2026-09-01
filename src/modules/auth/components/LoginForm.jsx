@@ -18,29 +18,33 @@ export default function LoginForm({ onSuccess })  { /*Se ejecuta cuando el usuar
     try {
       //  1. Llamamos al endpoint login
       const response = await instance.post('/api/authenticate/login', {
-        username: data.username,
+        email: data.email,
         password: data.password,
       });
-     /*Guadamos el token */
-      const loginData = response.data;
 
-      console.log('[Login] respuesta backend:', loginData);
-      console.log('ROL:', loginData.role);
+      const { token, user } = response.data;
 
-      //  2. Guardamos todo lo necesario en localStorage, descomponiendo el token
-      localStorage.setItem('token', loginData.token);
-      localStorage.setItem('username', loginData.username);
-      localStorage.setItem('customerId', loginData.customerId);      // IMPORTANTE
-      localStorage.setItem('identityUserId', loginData.identityUserId);
-      localStorage.setItem('roles', JSON.stringify(loginData.roles));
-      singin(response.data);
+      console.log('[Login] respuesta backend:', response.data);
+      console.log('ROL:', user?.role);
+
+      //  2. Guardamos todo lo necesario en localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('customerId', user?.id);
+      localStorage.setItem('username', user?.email);
+      localStorage.setItem('role', user?.role);
+
+      singin({
+        token,
+        username: user?.email,
+        customerId: user?.id,
+        role: user?.role,
+      });
+
       /* Si el inicio de sesion tiene exito se actualiza el estado de la app */
       if (onSuccess) onSuccess();
-      /*Obtenemos el rol del usuario para derivarlo a sus respectivas paginas */
-      const userRole = loginData.role;
-      //  3. Redirigimos al home o carrito
 
-      if (userRole == 'Admin') {
+      //  3. Redirigimos según el rol (insensible a mayúsculas/minúsculas)
+      if (user?.role?.toLowerCase() === 'admin') {
         navigate('/admin/home');
       } else {
         navigate('/');
@@ -48,7 +52,7 @@ export default function LoginForm({ onSuccess })  { /*Se ejecuta cuando el usuar
 
     } catch (error) {
       console.error('[Login] error:', error);
-      setBackendError('Usuario o contraseña incorrectos.');
+      setBackendError('Email o contraseña incorrectos.');
     }
   };
 
@@ -60,10 +64,15 @@ export default function LoginForm({ onSuccess })  { /*Se ejecuta cuando el usuar
         {backendError && <p className="text-red-600">{backendError}</p>}
 
         <Input
-          label="Usuario"
-          error={errors.username?.message}
-          {...register('username', {
-            required: 'El usuario es obligatorio',
+          label="Email"
+          type="email"
+          error={errors.email?.message}
+          {...register('email', {
+            required: 'El email es obligatorio',
+            pattern: {
+              value: /\S+@\S+\.\S+/,
+              message: 'Formato de email inválido',
+            },
           })}
         />
 
